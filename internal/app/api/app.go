@@ -19,7 +19,15 @@ func Run() error {
 		return err
 	}
 
-	log := applog.New(cfg.App.Name)
+	if err = cfg.Validate(); err != nil {
+		return err
+	}
+
+	log, closer, err := applog.New(cfg)
+	if err != nil {
+		return err
+	}
+	defer closer.Close()
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
@@ -37,7 +45,7 @@ func Run() error {
 		_ = srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Info().Str("addr", cfg.HTTP.APIAddr).Msg("api starting")
+	log.Info().Str("addr", cfg.HTTP.APIAddr).Str("event_type", "app_started").Msg("api starting")
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err

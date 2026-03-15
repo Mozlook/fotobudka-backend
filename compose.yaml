@@ -1,4 +1,5 @@
 x-app-common: &app-common
+  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
   restart: unless-stopped
   env_file:
     - .env

@@ -13,8 +13,16 @@ func Run() error {
 		return err
 	}
 
-	log := applog.New(cfg.App.Name)
-	log.Info().Msg("worker starting")
+	if err = cfg.Validate(); err != nil {
+		return err
+	}
+
+	log, closer, err := applog.New(cfg)
+	if err != nil {
+		return err
+	}
+	defer closer.Close()
+	log.Info().Str("event_type", "app_started").Msg("worker starting")
 
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()

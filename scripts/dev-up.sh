@@ -6,7 +6,10 @@ cd "$ROOT_DIR"
 
 mkdir -p logs
 
-docker compose \
+LOCAL_UID="$(id -u)"
+LOCAL_GID="$(id -g)"
+
+LOCAL_UID="$LOCAL_UID" LOCAL_GID="$LOCAL_GID" docker compose \
   -p fotobudka-dev \
   -f compose.yaml \
   -f compose.dev.yaml \
