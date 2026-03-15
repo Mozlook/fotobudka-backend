@@ -1,0 +1,9 @@
+.git
+.github
+.vscode
+.idea
+bin
+logs
+tmp
+dist
+.env
