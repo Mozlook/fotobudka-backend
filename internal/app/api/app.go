@@ -19,10 +19,10 @@ func Run() error {
 		return err
 	}
 
-	log := applog.New(cfg.AppName)
+	log := applog.New(cfg.App.Name)
 
 	srv := &http.Server{
-		Addr:              cfg.APIAddr,
+		Addr:              cfg.HTTP.APIAddr,
 		Handler:           hrouter.New(log),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
@@ -37,7 +37,7 @@ func Run() error {
 		_ = srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Info().Str("addr", cfg.APIAddr).Msg("api starting")
+	log.Info().Str("addr", cfg.HTTP.APIAddr).Msg("api starting")
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err

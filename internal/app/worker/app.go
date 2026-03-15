@@ -13,7 +13,7 @@ func Run() error {
 		return err
 	}
 
-	log := applog.New(cfg.AppName)
+	log := applog.New(cfg.App.Name)
 	log.Info().Msg("worker starting")
 
 	ticker := time.NewTicker(30 * time.Second)
