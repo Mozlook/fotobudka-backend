@@ -1,5 +1,9 @@
+// Package config loads application configuration from environment variables
+// and validates required settings for the FotoBudka backend.
 package config
 
+// Load reads configuration from environment variables, applies defaults,
+// and returns a populated Config value.
 func Load() (Config, error) {
 	smtpPort, err := getEnvInt("SMTP_PORT", 0)
 	if err != nil {

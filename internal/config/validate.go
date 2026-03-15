@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// Validate checks whether the configuration is complete and internally consistent.
 func (c Config) Validate() error {
 	var errs []string
 
@@ -108,6 +109,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
+// validateListenAddr checks whether addr is a valid listen address in host:port or :port form.
 func validateListenAddr(addr string) error {
 	_, _, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -117,6 +119,7 @@ func validateListenAddr(addr string) error {
 	return nil
 }
 
+// validateURL checks whether raw is a valid URL and whether it uses one of the allowed schemes.
 func validateURL(raw string, allowedSchemes ...string) error {
 	parsed, err := url.Parse(raw)
 	if err != nil {
