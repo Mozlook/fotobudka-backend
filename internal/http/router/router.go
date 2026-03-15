@@ -14,8 +14,9 @@ func New(log zerolog.Logger) http.Handler {
 	mux.HandleFunc("GET /healthz", handler.Health)
 
 	var h http.Handler = mux
-	h = middleware.RequestID(h)
 	h = middleware.Recover(log, h)
+	h = middleware.AccessLog(log, h)
+	h = middleware.RequestID(h)
 
 	return h
 }
