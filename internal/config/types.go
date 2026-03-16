@@ -8,9 +8,11 @@ type Config struct {
 	S3      S3Config
 	SMTP    SMTPConfig
 	OAuth   OAuthConfig
-	Captcha CaptchaConfig
 	Redis   RedisConfig
 	SIEM    SIEMConfig
+	JWT     JWTConfig
+	Cookie  CookieConfig
+	Captcha CaptchaConfig
 }
 
 // AppConfig contains generic application metadata and runtime environment settings.
@@ -29,6 +31,9 @@ type HTTPConfig struct {
 
 	// BaseURL is the public base URL used when generating absolute links.
 	BaseURL string
+
+	// FrontendOrigin is the allowed CORS origin.
+	FrontendOrigin string
 }
 
 // DBConfig contains database connection settings.
@@ -83,6 +88,9 @@ type OAuthConfig struct {
 
 	// GoogleClientSecret is the Google OAuth client secret.
 	GoogleClientSecret string
+
+	// GoogleRedirectURL is a callback URI for OAuth.
+	GoogleRedirectURL string
 }
 
 // CaptchaConfig contains CAPTCHA integration settings.
@@ -104,4 +112,32 @@ type RedisConfig struct {
 type SIEMConfig struct {
 	// LogDir is the directory where append-only JSONL application logs are written.
 	LogDir string
+}
+
+// JWTConfig contains settings used to sign and validate authentication tokens.
+type JWTConfig struct {
+	// Secret is the signing key used to create and verify JWT tokens.
+	Secret string
+
+	// Issuer identifies the backend that issued the token.
+	Issuer string
+
+	// Audience identifies the intended recipient or consumer of the token.
+	Audience string
+
+	// TTLHours defines how long an issued token remains valid, in hours.
+	TTLHours int
+}
+
+// CookieConfig contains settings used when writing the authentication cookie.
+type CookieConfig struct {
+	// Name is the cookie name sent to the client browser.
+	Name string
+
+	// Domain is an optional cookie domain attribute.
+	// When empty, the cookie is scoped to the current host only.
+	Domain string
+
+	// Secure controls whether the cookie is sent only over HTTPS.
+	Secure bool
 }

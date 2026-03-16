@@ -15,14 +15,25 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	jwtTTLHours, err := getEnvInt("JWT_TTL_HOURS", 720)
+	if err != nil {
+		return Config{}, err
+	}
+
+	cookieSecure, err := getEnvBool("COOKIE_SECURE", false)
+	if err != nil {
+		return Config{}, err
+	}
+
 	cfg := Config{
 		App: AppConfig{
 			Name: getEnv("APP_NAME", "FotoBudka"),
 			Env:  getEnv("APP_ENV", "dev"),
 		},
 		HTTP: HTTPConfig{
-			APIAddr: getEnv("API_ADDR", ":8080"),
-			BaseURL: getEnv("BASE_URL", ""),
+			APIAddr:        getEnv("API_ADDR", ":8080"),
+			BaseURL:        getEnv("BASE_URL", ""),
+			FrontendOrigin: getEnv("FRONTEND_ORIGIN", ""),
 		},
 		DB: DBConfig{
 			URL: getEnv("DB_URL", ""),
@@ -45,6 +56,7 @@ func Load() (Config, error) {
 		OAuth: OAuthConfig{
 			GoogleClientID:     getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
 			GoogleClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
+			GoogleRedirectURL:  getEnv("GOOGLE_REDIRECT_URL", ""),
 		},
 		Captcha: CaptchaConfig{
 			RecaptchaSiteKey:   getEnv("RECAPTCHA_SITE_KEY", ""),
@@ -55,6 +67,16 @@ func Load() (Config, error) {
 		},
 		SIEM: SIEMConfig{
 			LogDir: getEnv("SIEM_LOG_DIR", ""),
+		},
+		JWT: JWTConfig{
+			Secret:   getEnv("JWT_SECRET", ""),
+			Issuer:   getEnv("JWT_ISSUER", ""),
+			Audience: getEnv("JWT_AUDIENCE", ""),
+			TTLHours: jwtTTLHours,
+		}, Cookie: CookieConfig{
+			Name:   getEnv("COOKIE_NAME", "fotobudka_session"),
+			Domain: getEnv("COOKIE_DOMAIN", ""),
+			Secure: cookieSecure,
 		},
 	}
 

@@ -106,6 +106,69 @@ func (c Config) Validate() error {
 		return fmt.Errorf("config validation failed: %s", strings.Join(errs, ", "))
 	}
 
+	if isBlank(c.HTTP.FrontendOrigin) {
+		errs = append(errs, "FRONTEND_ORIGIN is required")
+	} else if err := validateOrigin(c.HTTP.FrontendOrigin); err != nil {
+		errs = append(errs, fmt.Sprintf("FRONTEND_ORIGIN %s", err.Error()))
+	}
+
+	if isBlank(c.OAuth.GoogleClientID) {
+		errs = append(errs, "GOOGLE_OAUTH_CLIENT_ID is required")
+	}
+
+	if isBlank(c.OAuth.GoogleClientSecret) {
+		errs = append(errs, "GOOGLE_OAUTH_CLIENT_SECRET is required")
+	}
+
+	if isBlank(c.OAuth.GoogleRedirectURL) {
+		errs = append(errs, "GOOGLE_OAUTH_REDIRECT_URL is required")
+	} else if err := validateURL(c.OAuth.GoogleRedirectURL, "http", "https"); err != nil {
+		errs = append(errs, fmt.Sprintf("GOOGLE_OAUTH_REDIRECT_URL %s", err.Error()))
+	}
+
+	if isBlank(c.JWT.Secret) {
+		errs = append(errs, "JWT_SECRET is required")
+	} else if len(c.JWT.Secret) < 32 {
+		errs = append(errs, "JWT_SECRET must be at least 32 characters long")
+	}
+
+	if isBlank(c.JWT.Issuer) {
+		errs = append(errs, "JWT_ISSUER is required")
+	}
+
+	if isBlank(c.JWT.Audience) {
+		errs = append(errs, "JWT_AUDIENCE is required")
+	}
+
+	if c.JWT.TTLHours <= 0 {
+		errs = append(errs, "JWT_TTL_HOURS must be greater than 0")
+	}
+
+	if isBlank(c.Cookie.Name) {
+		errs = append(errs, "COOKIE_NAME is required")
+	} else if err := validateCookieName(c.Cookie.Name); err != nil {
+		errs = append(errs, fmt.Sprintf("COOKIE_NAME %s", err.Error()))
+	}
+
+	if !isBlank(c.Cookie.Domain) {
+		if err := validateCookieDomain(c.Cookie.Domain); err != nil {
+			errs = append(errs, fmt.Sprintf("COOKIE_DOMAIN %s", err.Error()))
+		}
+	}
+
+	if strings.HasPrefix(c.Cookie.Name, "__Host-") {
+		if !c.Cookie.Secure {
+			errs = append(errs, "COOKIE_SECURE must be true when COOKIE_NAME starts with __Host-")
+		}
+		if !isBlank(c.Cookie.Domain) {
+			errs = append(errs, "COOKIE_DOMAIN must be empty when COOKIE_NAME starts with __Host-")
+		}
+	}
+
+	if c.App.Env == "prod" && !c.Cookie.Secure {
+		errs = append(errs, "COOKIE_SECURE must be true in prod")
+	}
+
 	return nil
 }
 
@@ -147,6 +210,63 @@ func validateURL(raw string, allowedSchemes ...string) error {
 		if !validScheme {
 			return fmt.Errorf("must use one of the schemes: %s", strings.Join(allowedSchemes, ", "))
 		}
+	}
+
+	return nil
+}
+
+func validateOrigin(raw string) error {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("is invalid: %w", err)
+	}
+
+	if parsed.Scheme == "" {
+		return fmt.Errorf("must include a scheme")
+	}
+
+	if parsed.Host == "" {
+		return fmt.Errorf("must include a host")
+	}
+
+	if !strings.EqualFold(parsed.Scheme, "http") && !strings.EqualFold(parsed.Scheme, "https") {
+		return fmt.Errorf("must use one of the schemes: http, https")
+	}
+
+	if parsed.Path != "" && parsed.Path != "/" {
+		return fmt.Errorf("must be an origin only, without a path")
+	}
+
+	if parsed.RawQuery != "" {
+		return fmt.Errorf("must not include a query string")
+	}
+
+	if parsed.Fragment != "" {
+		return fmt.Errorf("must not include a fragment")
+	}
+
+	return nil
+}
+
+func validateCookieName(name string) error {
+	if strings.ContainsAny(name, " \t\r\n;") {
+		return fmt.Errorf("must not contain whitespace or ';'")
+	}
+
+	return nil
+}
+
+func validateCookieDomain(domain string) error {
+	if strings.Contains(domain, "://") {
+		return fmt.Errorf("must be a domain only, without a scheme")
+	}
+
+	if strings.Contains(domain, "/") {
+		return fmt.Errorf("must not contain a path")
+	}
+
+	if strings.ContainsAny(domain, " \t\r\n") {
+		return fmt.Errorf("must not contain whitespace")
 	}
 
 	return nil
