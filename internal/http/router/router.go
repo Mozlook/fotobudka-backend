@@ -12,7 +12,6 @@ import (
 func New(log zerolog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handler.Health)
-	mux.HandleFunc("GET /panicz", handler.Panic)
 
 	var h http.Handler = mux
 	h = middleware.Recover(log, h)
