@@ -10,6 +10,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// New creates an application logger configured for append-only JSONL output.
+//
+// The logger writes logs to SIEM_LOG_DIR/<AppName>/app.jsonl.
+// In the dev environment it writes to both the log file and stdout.
+// In non-dev environments it writes to the log file only.
+//
+// The returned closer should be closed by the caller during application shutdown.
 func New(cfg config.Config) (zerolog.Logger, io.Closer, error) {
 	logDir := filepath.Join(cfg.SIEM.LogDir, cfg.App.Name)
 	err := os.MkdirAll(logDir, 0o755)
