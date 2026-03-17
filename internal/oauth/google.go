@@ -6,10 +6,12 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+// Provider wraps the OAuth 2.0 configuration used for Google authentication.
 type Provider struct {
-	Config oauth2.Config
+	config oauth2.Config
 }
 
+// New creates a Google OAuth provider configured from application settings.
 func New(cfg config.Config) *Provider {
 	return &Provider{
 		oauth2.Config{
@@ -22,6 +24,9 @@ func New(cfg config.Config) *Provider {
 	}
 }
 
+// LoginURL returns the Google authorization URL for the current login flow.
+//
+// The returned URL includes the provided state value and PKCE challenge.
 func (p *Provider) LoginURL(state, verifier string) string {
-	return p.Config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
+	return p.config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
 }

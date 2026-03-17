@@ -9,11 +9,14 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// AuthHandler serves HTTP endpoints related to authentication.
 type AuthHandler struct {
 	cfg      config.Config
 	provider *oauth.Provider
 }
 
+// NewAuthHandler creates an AuthHandler configured with application settings
+// and the Google OAuth provider.
 func NewAuthHandler(cfg config.Config, provider *oauth.Provider) *AuthHandler {
 	return &AuthHandler{
 		cfg:      cfg,
@@ -21,6 +24,7 @@ func NewAuthHandler(cfg config.Config, provider *oauth.Provider) *AuthHandler {
 	}
 }
 
+// setFlowCookies writes a short-lived HttpOnly cookie used during the OAuth flow.
 func (h *AuthHandler) setFlowCookies(w http.ResponseWriter, name, value string) {
 	cookie := &http.Cookie{
 		Name:     name,
@@ -35,6 +39,10 @@ func (h *AuthHandler) setFlowCookies(w http.ResponseWriter, name, value string) 
 	http.SetCookie(w, cookie)
 }
 
+// GoogleLogin starts the Google OAuth login flow.
+//
+// It generates a fresh PKCE verifier and state value, stores them in short-lived
+// flow cookies, and redirects the client to the Google authorization page.
 func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	provider := h.provider
 	verifier := oauth2.GenerateVerifier()
