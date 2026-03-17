@@ -9,9 +9,10 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
 )
 
-func New(log zerolog.Logger) http.Handler {
+func New(log zerolog.Logger, googleLogin http.HandlerFunc) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handler.Health)
+	mux.HandleFunc("GET /api/auth/google/login", googleLogin)
 
 	var h http.Handler = mux
 	h = middleware.Recover(log, h)

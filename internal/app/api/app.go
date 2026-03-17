@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/Mozlook/fotobudka-backend/internal/config"
+	handler "github.com/Mozlook/fotobudka-backend/internal/http/handler/auth"
 	hrouter "github.com/Mozlook/fotobudka-backend/internal/http/router"
+	"github.com/Mozlook/fotobudka-backend/internal/oauth"
 	applog "github.com/Mozlook/fotobudka-backend/internal/platform/logger"
 )
 
@@ -29,9 +31,12 @@ func Run() error {
 	}
 	defer closer.Close()
 
+	provider := oauth.New(cfg)
+	authHandler := handler.NewAuthHandler(cfg, provider)
+
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
-		Handler:           hrouter.New(log),
+		Handler:           hrouter.New(log, authHandler.GoogleLogin),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
