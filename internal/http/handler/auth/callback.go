@@ -29,7 +29,7 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.clearFlowCookies(w, stateCookie.Name)
 		h.clearFlowCookies(w, verifierCookie.Name)
-		http.Error(w, http.StatusText(400), 400)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
