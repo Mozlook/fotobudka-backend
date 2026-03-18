@@ -17,6 +17,7 @@ func (h *AuthHandler) setFlowCookies(w http.ResponseWriter, name, value string) 
 	http.SetCookie(w, cookie)
 }
 
+// clearFlowCookies removes a short-lived OAuth flow cookie from the client
 func (h *AuthHandler) clearFlowCookies(w http.ResponseWriter, name string) {
 	cookie := &http.Cookie{
 		Name:     name,
