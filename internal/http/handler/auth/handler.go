@@ -1,4 +1,4 @@
-package handler
+package auth
 
 import (
 	"github.com/Mozlook/fotobudka-backend/internal/config"
