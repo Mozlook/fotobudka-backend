@@ -11,8 +11,12 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+// GoogleUserData contains the basic user profile returned by the Google
+// OpenID Connect userinfo endpoint.
 type GoogleUserData struct {
-	Sub           string `json:"sub"`
+	// Sub is the stable Google account identifier.
+	Sub string `json:"sub"`
+
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
 	Name          string `json:"name"`
