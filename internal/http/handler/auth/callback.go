@@ -25,7 +25,7 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.provider.Exchange(r.Context(), code, verifierCookie.Value)
+	token, err = h.provider.Exchange(r.Context(), code, verifierCookie.Value)
 	if err != nil {
 		h.clearFlowCookies(w, stateCookie.Name)
 		h.clearFlowCookies(w, verifierCookie.Name)
