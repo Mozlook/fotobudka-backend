@@ -36,7 +36,7 @@ func Run() error {
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
-		Handler:           hrouter.New(log, authHandler.GoogleLogin),
+		Handler:           hrouter.New(log, authHandler),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
