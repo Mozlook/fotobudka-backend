@@ -1,6 +1,8 @@
 package oauth
 
 import (
+	"context"
+
 	"github.com/Mozlook/fotobudka-backend/internal/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -29,4 +31,12 @@ func New(cfg config.Config) *Provider {
 // The returned URL includes the provided state value and PKCE challenge.
 func (p *Provider) LoginURL(state, verifier string) string {
 	return p.config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
+}
+
+func (p *Provider) Exchange(ctx context.Context, code string, verifier string) (*oauth2.Token, error) {
+	token, err := p.config.Exchange(ctx, code, oauth2.VerifierOption(verifier))
+	if err != nil {
+		return &oauth2.Token{}, err
+	}
+	return token, nil
 }
