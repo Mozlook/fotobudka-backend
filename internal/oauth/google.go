@@ -62,6 +62,8 @@ func (p *Provider) Exchange(ctx context.Context, code string, verifier string) (
 	return token, nil
 }
 
+// FetchUserInfo retrieves the authenticated user's profile from the Google
+// OpenID Connect userinfo endpoint by using the provided OAuth token.
 func (p *Provider) FetchUserInfo(ctx context.Context, token *oauth2.Token) (GoogleUserData, error) {
 	client := p.config.Client(ctx, token)
 
