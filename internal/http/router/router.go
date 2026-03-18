@@ -14,7 +14,7 @@ func New(log zerolog.Logger, authHandler *auth.AuthHandler) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handler.Health)
 	mux.HandleFunc("GET /api/auth/google/login", authHandler.GoogleLogin)
-	mux.HandleFunc("GET /api/auth/google/callback", authHandler.GoogleLogin)
+	mux.HandleFunc("GET /api/auth/google/callback", authHandler.GoogleCallback)
 
 	var h http.Handler = mux
 	h = middleware.Recover(log, h)

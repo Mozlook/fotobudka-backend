@@ -54,7 +54,7 @@ func Load() (Config, error) {
 		OAuth: OAuthConfig{
 			GoogleClientID:     getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
 			GoogleClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
-			GoogleRedirectURL:  getEnv("GOOGLE_REDIRECT_URL", ""),
+			GoogleRedirectURL:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", ""),
 		},
 		Captcha: CaptchaConfig{
 			RecaptchaSiteKey:   getEnv("RECAPTCHA_SITE_KEY", ""),
