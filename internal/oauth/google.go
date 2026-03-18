@@ -50,6 +50,10 @@ func (p *Provider) LoginURL(state, verifier string) string {
 	return p.config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
 }
 
+// Exchange exchanges a Google authorization code for an OAuth 2.0 token.
+//
+// The verifier argument is the PKCE code verifier generated at login time
+// and validated by Google during the token exchange.
 func (p *Provider) Exchange(ctx context.Context, code string, verifier string) (*oauth2.Token, error) {
 	token, err := p.config.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
