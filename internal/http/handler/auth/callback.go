@@ -5,6 +5,11 @@ import (
 	"net/http"
 )
 
+// GoogleCallback completes the Google OAuth login flow.
+//
+// It validates the returned state, exchanges the authorization code for
+// an OAuth token, fetches the Google user profile, clears temporary flow
+// cookies, and returns the retrieved user data as JSON.
 func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	provider := h.provider
 
