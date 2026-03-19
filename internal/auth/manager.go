@@ -1,4 +1,4 @@
-package auth
+package appauth
 
 import (
 	"errors"

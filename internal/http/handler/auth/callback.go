@@ -1,18 +1,19 @@
 package auth
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"github.com/Mozlook/fotobudka-backend/internal/repository/users"
+	"github.com/google/uuid"
 )
 
 // GoogleCallback completes the Google OAuth login flow.
 //
 // It validates the returned state, exchanges the authorization code for
-// an OAuth token, fetches the Google user profile, clears temporary flow
-// cookies, and returns the retrieved user data as JSON.
+// an OAuth token, fetches the Google user profile, upserts the local user,
+// issues the application auth token, clears temporary flow cookies,
+// and redirects the client to the frontend application.
 func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
-	provider := h.provider
-
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -37,7 +38,7 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := provider.Exchange(r.Context(), code, verifierCookie.Value)
+	token, err := h.provider.Exchange(r.Context(), code, verifierCookie.Value)
 	if err != nil {
 		h.clearFlowCookies(w, stateCookie.Name)
 		h.clearFlowCookies(w, verifierCookie.Name)
@@ -45,7 +46,7 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userData, err := provider.FetchUserInfo(r.Context(), token)
+	userData, err := h.provider.FetchUserInfo(r.Context(), token)
 	if err != nil {
 		h.clearFlowCookies(w, stateCookie.Name)
 		h.clearFlowCookies(w, verifierCookie.Name)
@@ -53,7 +54,15 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := json.Marshal(userData)
+	upsert := users.UpsertFromGoogleInput{
+		ID:        uuid.New(),
+		GoogleSub: userData.Sub,
+		Email:     userData.Email,
+		Name:      userData.Name,
+		AvatarURL: userData.Picture,
+	}
+
+	user, err := h.users.UpsertFromGoogle(r.Context(), upsert)
 	if err != nil {
 		h.clearFlowCookies(w, stateCookie.Name)
 		h.clearFlowCookies(w, verifierCookie.Name)
@@ -61,10 +70,17 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenStr, expiresAt, err := h.manager.IssueToken(user.ID.String())
+	if err != nil {
+		h.clearFlowCookies(w, stateCookie.Name)
+		h.clearFlowCookies(w, verifierCookie.Name)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	h.manager.SetAuthCookie(w, tokenStr, expiresAt)
 	h.clearFlowCookies(w, stateCookie.Name)
 	h.clearFlowCookies(w, verifierCookie.Name)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(payload)
+	http.Redirect(w, r, h.cfg.HTTP.FrontendOrigin, http.StatusFound)
 }

@@ -2,4 +2,4 @@
 //
 // It is responsible for issuing and validating authentication tokens,
 // reading tokens from HTTP requests, and managing authentication cookies.
-package auth
+package appauth

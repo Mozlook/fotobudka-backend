@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	appauth "github.com/Mozlook/fotobudka-backend/internal/auth"
 	"github.com/Mozlook/fotobudka-backend/internal/config"
 	auth "github.com/Mozlook/fotobudka-backend/internal/http/handler/auth"
 	hrouter "github.com/Mozlook/fotobudka-backend/internal/http/router"
@@ -41,11 +42,14 @@ func Run() error {
 	if err != nil {
 		return err
 	}
+	defer pool.Close()
+
 	queries := dbgen.New(pool)
 	usersRepo := users.New(queries)
 
+	manager := appauth.New(cfg)
 	provider := oauth.New(cfg)
-	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo)
+	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
