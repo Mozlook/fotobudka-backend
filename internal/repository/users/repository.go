@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"fmt"
 
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 )
@@ -23,7 +24,7 @@ func (r *Repository) UpsertFromGoogle(ctx context.Context, in UpsertFromGoogleIn
 		AvatarUrl: in.AvatarURL,
 	})
 	if err != nil {
-		return User{}, err
+		return User{}, fmt.Errorf("upsert user from google : %2", err)
 	}
 	return User{
 		ID:        row.ID,
