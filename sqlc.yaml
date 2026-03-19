@@ -28,19 +28,14 @@ sql:
               type: "UUID"
               pointer: true
 
-          - db_type: "pg_catalog.timestamptz"
+          - db_type: "timestamptz"
             go_type:
               import: "time"
               type: "Time"
 
-          - db_type: "pg_catalog.timestamptz"
+          - db_type: "timestamptz"
             nullable: true
             go_type:
               import: "time"
               type: "Time"
               pointer: true
-
-          - column: "users.created_at"
-            go_type:
-              import: "time"
-              type: "Time"
