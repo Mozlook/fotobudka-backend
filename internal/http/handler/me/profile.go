@@ -9,6 +9,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// GetProfile returns the authenticated photographer profile as JSON.
+//
+// The user identity is read from the request context and must be set by
+// authentication middleware before this handler is executed.
 func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
