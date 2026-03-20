@@ -26,6 +26,7 @@ var reservedUsernames = map[string]struct{}{
 	"s":      {},
 }
 
+// PutProfileRequest describes the JSON payload accepted by PutProfile
 type PutProfileRequest struct {
 	Username    string               `json:"username"`
 	DisplayName string               `json:"display_name"`
@@ -66,6 +67,14 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(payload)
 }
 
+// PutProfile creates or updates the authenticated photographer profile.
+//
+// The user identity is read from the request context and must be set by
+// authentication middleware before this handler is executed.
+//
+// The request body must contain a valid profile payload. The handler validates
+// the username format, reserved usernames, display name length, and bio length
+// before persisting the profile.
 func (h *Handler) PutProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
