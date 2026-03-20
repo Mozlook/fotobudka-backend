@@ -7,8 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type contextKey string
-
 const requestIDKey contextKey = "request_id"
 
 // RequestID ensures that every request has a correlation identifier.
@@ -27,12 +25,4 @@ func RequestID(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), requestIDKey, requestID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-// RequestIDFromContext returns the request correlation identifier stored in ctx.
-//
-// It returns an empty string when no request identifier is present.
-func RequestIDFromContext(ctx context.Context) string {
-	requestID, _ := ctx.Value(requestIDKey).(string)
-	return requestID
 }
