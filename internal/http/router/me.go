@@ -10,4 +10,5 @@ import (
 
 func registerMeRoutes(mux *http.ServeMux, meHandler *me.Handler, manager *appauth.Manager) {
 	mux.Handle("GET /api/me/profile", middleware.RequireAuth(manager, http.HandlerFunc(meHandler.GetProfile)))
+	mux.Handle("PUT /api/me/profile", middleware.RequireAuth(manager, http.HandlerFunc(meHandler.PutProfile)))
 }
