@@ -3,18 +3,26 @@ package router
 import (
 	"net/http"
 
-	"github.com/rs/zerolog"
-
+	appauth "github.com/Mozlook/fotobudka-backend/internal/auth"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/auth"
+	"github.com/Mozlook/fotobudka-backend/internal/http/handler/me"
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
+	"github.com/rs/zerolog"
 )
 
-func New(log zerolog.Logger, authHandler *auth.AuthHandler) http.Handler {
+func New(
+	log zerolog.Logger,
+	authHandler *auth.AuthHandler,
+	meHandler *me.Handler,
+	manager *appauth.Manager,
+) http.Handler {
 	mux := http.NewServeMux()
+
 	mux.HandleFunc("GET /healthz", handler.Health)
-	mux.HandleFunc("GET /api/auth/google/login", authHandler.GoogleLogin)
-	mux.HandleFunc("GET /api/auth/google/callback", authHandler.GoogleCallback)
+
+	registerAuthRoutes(mux, authHandler)
+	registerMeRoutes(mux, meHandler, manager)
 
 	var h http.Handler = mux
 	h = middleware.Recover(log, h)

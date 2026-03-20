@@ -11,11 +11,13 @@ import (
 	appauth "github.com/Mozlook/fotobudka-backend/internal/auth"
 	"github.com/Mozlook/fotobudka-backend/internal/config"
 	auth "github.com/Mozlook/fotobudka-backend/internal/http/handler/auth"
+	"github.com/Mozlook/fotobudka-backend/internal/http/handler/me"
 	hrouter "github.com/Mozlook/fotobudka-backend/internal/http/router"
 	"github.com/Mozlook/fotobudka-backend/internal/oauth"
 	"github.com/Mozlook/fotobudka-backend/internal/platform/db"
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 	applog "github.com/Mozlook/fotobudka-backend/internal/platform/logger"
+	"github.com/Mozlook/fotobudka-backend/internal/repository/profiles"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/users"
 )
 
@@ -46,14 +48,16 @@ func Run() error {
 
 	queries := dbgen.New(pool)
 	usersRepo := users.New(queries)
+	profilesRepo := profiles.New(queries)
 
 	manager := appauth.New(cfg)
 	provider := oauth.New(cfg)
 	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
+	meHandler := me.NewHandler(profilesRepo)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
-		Handler:           hrouter.New(log, authHandler),
+		Handler:           hrouter.New(log, authHandler, meHandler, manager),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
