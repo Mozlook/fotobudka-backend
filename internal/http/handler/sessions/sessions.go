@@ -22,11 +22,6 @@ type InsertSessionRequest struct {
 	PaymentMode     string `json:"payment_mode"`
 }
 
-type InsertSessionResponse struct {
-	ID     uuid.UUID `json:"id"`
-	Status string    `json:"status"`
-}
-
 // GetSession ensures that the authenticated photographer has access to the requested session.
 //
 // This handler currently performs only the ownership check and returns no content
@@ -80,7 +75,7 @@ func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 		req.PaymentMode = "manual"
 	}
 
-	h.sessions.InsertSession(r.Context(), sessions.InsertSessionInput{
+	sessionStatus, err := h.sessions.InsertSession(r.Context(), sessions.InsertSessionInput{
 		PhotographerID:  userID,
 		Title:           req.Title,
 		ClientEmail:     &req.ClientEmail,
@@ -91,4 +86,18 @@ func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 		Currency:        req.Currency,
 		PaymentMode:     req.PaymentMode,
 	})
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	payload, err := json.Marshal(sessionStatus)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
 }
