@@ -23,6 +23,7 @@ func New(
 
 	registerAuthRoutes(mux, authHandler)
 	registerMeRoutes(mux, meHandler, manager)
+	registerSessionRoutes(mux, sessionsHandler)
 
 	var h http.Handler = mux
 	h = middleware.Recover(log, h)
