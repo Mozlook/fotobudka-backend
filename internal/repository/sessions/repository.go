@@ -26,3 +26,24 @@ func (r *Repository) GetSessionOwnerByID(ctx context.Context, sessionID uuid.UUI
 		PhotographerID: sessionOwner.PhotographerID,
 	}, nil
 }
+
+func (r *Repository) InsertSession(ctx context.Context, in InsertSessionRequest) (InsertSessionResponse, error) {
+	session, err := r.q.InsertSession(ctx, dbgen.InsertSessionParams{
+		PhotographerID:  in.PhotographerID,
+		Title:           in.Title,
+		ClientEmail:     in.ClientEmail,
+		BasePriceCents:  in.BasePriceCents,
+		IncludedCount:   in.IncludedCount,
+		ExtraPriceCents: in.ExtraPriceCents,
+		MinSelectCount:  in.MinSelectCount,
+		Currency:        in.Currency,
+		PaymentMode:     in.PaymentMode,
+	})
+	if err != nil {
+		return InsertSessionResponse{}, fmt.Errorf("insert session: %w", err)
+	}
+	return InsertSessionResponse{
+		ID:     session.ID,
+		Status: session.Status,
+	}, nil
+}
