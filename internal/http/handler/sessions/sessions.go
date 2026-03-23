@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/Mozlook/fotobudka-backend/internal/guard"
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
@@ -12,14 +13,14 @@ import (
 )
 
 type InsertSessionRequest struct {
-	Title           string `json:"title"`
-	ClientEmail     string `json:"client_email"`
-	BasePriceCents  int32  `json:"base_price_cents"`
-	IncludedCount   int32  `json:"included_count"`
-	ExtraPriceCents int32  `json:"extra_price_cents"`
-	MinSelectCount  int32  `json:"min_select_count"`
-	Currency        string `json:"currency"`
-	PaymentMode     string `json:"payment_mode"`
+	Title           string  `json:"title"`
+	ClientEmail     *string `json:"client_email"`
+	BasePriceCents  int32   `json:"base_price_cents"`
+	IncludedCount   int32   `json:"included_count"`
+	ExtraPriceCents int32   `json:"extra_price_cents"`
+	MinSelectCount  int32   `json:"min_select_count"`
+	Currency        string  `json:"currency"`
+	PaymentMode     string  `json:"payment_mode"`
 }
 
 // GetSession ensures that the authenticated photographer has access to the requested session.
@@ -60,6 +61,9 @@ func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 16*1024)
+	defer r.Body.Close()
+
 	var req InsertSessionRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -75,10 +79,18 @@ func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 		req.PaymentMode = "manual"
 	}
 
+	var clientEmail *string
+	if req.ClientEmail != nil {
+		trimmed := strings.TrimSpace(*req.ClientEmail)
+		if trimmed != "" {
+			clientEmail = &trimmed
+		}
+	}
+
 	sessionStatus, err := h.sessions.InsertSession(r.Context(), sessions.InsertSessionInput{
 		PhotographerID:  userID,
 		Title:           req.Title,
-		ClientEmail:     &req.ClientEmail,
+		ClientEmail:     clientEmail,
 		BasePriceCents:  req.BasePriceCents,
 		IncludedCount:   req.IncludedCount,
 		ExtraPriceCents: req.ExtraPriceCents,
@@ -98,6 +110,6 @@ func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write(payload)
 }
