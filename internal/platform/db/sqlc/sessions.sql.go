@@ -30,3 +30,65 @@ func (q *Queries) GetSessionOwnerByID(ctx context.Context, id uuid.UUID) (GetSes
 	err := row.Scan(&i.ID, &i.PhotographerID)
 	return i, err
 }
+
+const insertSession = `-- name: InsertSession :one
+INSERT INTO sessions (
+  photographer_id,
+  title,
+  client_email,
+  base_price_cents,
+  included_count,
+  extra_price_cents,
+  min_select_count,
+  currency,
+  payment_mode
+
+) VALUES(
+$1,
+$2,
+$3,
+$4,
+$5,
+$6,
+$7,
+$8,
+$9
+)
+RETURNING 
+  id,
+  status
+`
+
+type InsertSessionParams struct {
+	PhotographerID  uuid.UUID `db:"photographer_id" json:"photographer_id"`
+	Title           string    `db:"title" json:"title"`
+	ClientEmail     *string   `db:"client_email" json:"client_email"`
+	BasePriceCents  int32     `db:"base_price_cents" json:"base_price_cents"`
+	IncludedCount   int32     `db:"included_count" json:"included_count"`
+	ExtraPriceCents int32     `db:"extra_price_cents" json:"extra_price_cents"`
+	MinSelectCount  int32     `db:"min_select_count" json:"min_select_count"`
+	Currency        string    `db:"currency" json:"currency"`
+	PaymentMode     string    `db:"payment_mode" json:"payment_mode"`
+}
+
+type InsertSessionRow struct {
+	ID     uuid.UUID `db:"id" json:"id"`
+	Status string    `db:"status" json:"status"`
+}
+
+func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (InsertSessionRow, error) {
+	row := q.db.QueryRow(ctx, insertSession,
+		arg.PhotographerID,
+		arg.Title,
+		arg.ClientEmail,
+		arg.BasePriceCents,
+		arg.IncludedCount,
+		arg.ExtraPriceCents,
+		arg.MinSelectCount,
+		arg.Currency,
+		arg.PaymentMode,
+	)
+	var i InsertSessionRow
+	err := row.Scan(&i.ID, &i.Status)
+	return i, err
+}
