@@ -7,7 +7,7 @@ type SessionOwner struct {
 	PhotographerID uuid.UUID
 }
 
-type InsertSessionRequest struct {
+type InsertSessionInput struct {
 	PhotographerID  uuid.UUID `json:"photographer_id"`
 	Title           string    `json:"title"`
 	ClientEmail     *string   `json:"client_email"`
@@ -19,7 +19,7 @@ type InsertSessionRequest struct {
 	PaymentMode     string    `json:"payment_mode"`
 }
 
-type InsertSessionResponse struct {
+type SessionStatus struct {
 	ID     uuid.UUID `json:"id"`
 	Status string    `json:"status"`
 }
