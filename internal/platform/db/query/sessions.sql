@@ -74,3 +74,16 @@ SELECT
   delete_after
 FROM sessions
 WHERE id = $1;
+
+-- name: CloseSession :one
+UPDATE sessions
+SET
+status = $2,
+closed_at = $3,
+delete_after = $4
+WHERE id = $1
+RETURNING
+id,
+title,
+status,
+delete_after;
