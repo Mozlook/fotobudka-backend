@@ -25,50 +25,6 @@ type InsertSessionRequest struct {
 	PaymentMode     string  `json:"payment_mode"`
 }
 
-// GetSession ensures that the authenticated photographer has access to the requested session.
-//
-// This handler currently performs only the ownership check and returns no content
-// when access is allowed.
-func (h *Handler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.UserIDFromContext(r.Context())
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-		return
-	}
-
-	sessionID, err := uuid.Parse(r.PathValue("sessionId"))
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-
-	}
-
-	err = guard.EnsureSessionOwner(r.Context(), h.sessions, sessionID, userID)
-	if err != nil {
-		if errors.Is(err, guard.ErrSessionNotAccessible) {
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-			return
-		}
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	session, err := h.sessions.GetSessionByID(r.Context(), userID)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-
-	payload, err := json.Marshal(session)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(payload)
-}
-
 // InsertSession creates a new session for the authenticated photographer.
 //
 // The photographer identifier is taken from the request context, not from
@@ -168,6 +124,50 @@ func (h *Handler) GetSessions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payload, err := json.Marshal(sessionList)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
+}
+
+// GetSession ensures that the authenticated photographer has access to the requested session.
+//
+// This handler currently performs only the ownership check and returns no content
+// when access is allowed.
+func (h *Handler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	sessionID, err := uuid.Parse(r.PathValue("sessionId"))
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+
+	}
+
+	err = guard.EnsureSessionOwner(r.Context(), h.sessions, sessionID, userID)
+	if err != nil {
+		if errors.Is(err, guard.ErrSessionNotAccessible) {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	session, err := h.sessions.GetSessionByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	payload, err := json.Marshal(session)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
