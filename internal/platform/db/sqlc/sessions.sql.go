@@ -31,6 +31,71 @@ func (q *Queries) GetSessionOwnerByID(ctx context.Context, id uuid.UUID) (GetSes
 	return i, err
 }
 
+const getSessions = `-- name: GetSessions :many
+SELECT 
+  id,
+  photographer_id,
+  title,
+  client_email,
+  status,
+  base_price_cents,
+  included_count,
+  extra_price_cents,
+  min_select_count,
+  currency,
+  payment_mode,
+  created_at,
+  updated_at,
+  closed_at,
+  delete_after
+FROM sessions
+WHERE photographer_id = $1
+ORDER BY created_at DESC
+LIMIT 200
+OFFSET $2
+`
+
+type GetSessionsParams struct {
+	PhotographerID uuid.UUID `db:"photographer_id" json:"photographer_id"`
+	Offset         int32     `db:"offset" json:"offset"`
+}
+
+func (q *Queries) GetSessions(ctx context.Context, arg GetSessionsParams) ([]Session, error) {
+	rows, err := q.db.Query(ctx, getSessions, arg.PhotographerID, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Session{}
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.PhotographerID,
+			&i.Title,
+			&i.ClientEmail,
+			&i.Status,
+			&i.BasePriceCents,
+			&i.IncludedCount,
+			&i.ExtraPriceCents,
+			&i.MinSelectCount,
+			&i.Currency,
+			&i.PaymentMode,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ClosedAt,
+			&i.DeleteAfter,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertSession = `-- name: InsertSession :one
 INSERT INTO sessions (
   photographer_id,
