@@ -121,3 +121,18 @@ func (r *Repository) GetSessionByID(ctx context.Context, id uuid.UUID) (Session,
 	}
 	return session, nil
 }
+
+func (r *Repository) CloseSession(ctx context.Context, sessionID uuid.UUID) (ClosedSession, error) {
+	row, err := r.q.CloseSession(ctx, sessionID)
+	if err != nil {
+		return ClosedSession{}, fmt.Errorf("close session: %w", err)
+	}
+
+	return ClosedSession{
+		ID:          row.ID,
+		Title:       row.Title,
+		Status:      string,
+		ClosedAt:    row.ClosedAt,
+		DeleteAfter: row.DeleteAfter,
+	}, nil
+}

@@ -56,3 +56,11 @@ type Session struct {
 	ClosedAt        *time.Time
 	DeleteAfter     *time.Time
 }
+
+type ClosedSession struct {
+	ID          uuid.UUID
+	Title       string
+	Status      string
+	ClosedAt    *time.Time
+	DeleteAfter *time.Time
+}
