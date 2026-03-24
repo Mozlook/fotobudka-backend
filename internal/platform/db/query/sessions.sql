@@ -32,3 +32,28 @@ RETURNING
   id,
   status;
 
+-- name: GetSessions :many
+SELECT 
+  id,
+  photographer_id,
+  title,
+  client_email,
+  status,
+  base_price_cents,
+  included_count,
+  extra_price_cents,
+  min_select_count,
+  currency,
+  payment_mode,
+  created_at,
+  updated_at,
+  closed_at,
+  delete_after
+FROM sessions
+WHERE photographer_id = $1
+ORDER BY created_at DESC
+LIMIT 200
+OFFSET $2
+
+
+
