@@ -11,6 +11,50 @@ import (
 	"github.com/google/uuid"
 )
 
+const getSessionByID = `-- name: GetSessionByID :one
+SELECT 
+  id,
+  photographer_id,
+  title,
+  client_email,
+  status,
+  base_price_cents,
+  included_count,
+  extra_price_cents,
+  min_select_count,
+  currency,
+  payment_mode,
+  created_at,
+  updated_at,
+  closed_at,
+  delete_after
+FROM sessions
+WHERE id = $1
+`
+
+func (q *Queries) GetSessionByID(ctx context.Context, id uuid.UUID) (Session, error) {
+	row := q.db.QueryRow(ctx, getSessionByID, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.PhotographerID,
+		&i.Title,
+		&i.ClientEmail,
+		&i.Status,
+		&i.BasePriceCents,
+		&i.IncludedCount,
+		&i.ExtraPriceCents,
+		&i.MinSelectCount,
+		&i.Currency,
+		&i.PaymentMode,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ClosedAt,
+		&i.DeleteAfter,
+	)
+	return i, err
+}
+
 const getSessionOwnerByID = `-- name: GetSessionOwnerByID :one
 SELECT
     id,
