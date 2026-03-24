@@ -56,3 +56,39 @@ func (r *Repository) InsertSession(ctx context.Context, in InsertSessionInput) (
 		Status: session.Status,
 	}, nil
 }
+
+func (r *Repository) GetSessions(ctx context.Context, in GetSessionInput) ([]Session, error) {
+	queryResponse, err := r.q.GetSessions(ctx, dbgen.GetSessionsParams{
+		PhotographerID: in.PhotographerID,
+		Offset:         in.Offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get sessions: %w", err)
+	}
+
+	sessionsList := make([]Session, 0, len(queryResponse))
+
+	for _, row := range queryResponse {
+		session := Session{
+			ID:              row.ID,
+			PhotographerID:  row.PhotographerID,
+			Title:           row.Title,
+			ClientEmail:     row.ClientEmail,
+			Status:          row.Status,
+			BasePriceCents:  row.BasePriceCents,
+			IncludedCount:   row.IncludedCount,
+			ExtraPriceCents: row.ExtraPriceCents,
+			MinSelectCount:  row.MinSelectCount,
+			Currency:        row.Currency,
+			PaymentMode:     row.PaymentMode,
+			CreatedAt:       row.CreatedAt,
+			UpdatedAt:       row.UpdatedAt,
+			ClosedAt:        row.ClosedAt,
+			DeleteAfter:     row.DeleteAfter,
+		}
+
+		sessionsList = append(sessionsList, session)
+	}
+
+	return sessionsList, nil
+}
