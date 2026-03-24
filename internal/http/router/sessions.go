@@ -9,6 +9,6 @@ import (
 )
 
 func registerSessionRoutes(mux *http.ServeMux, sessionsHandler *sessions.Handler, manager *appauth.Manager) {
-	mux.Handle("GET /api/sessions/{sessionId}", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.GetSession)))
+	mux.Handle("GET /api/sessions/{sessionId}", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.GetSessionByID)))
 	mux.Handle("POST /api/sessions", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.InsertSession)))
 }

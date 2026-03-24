@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Mozlook/fotobudka-backend/internal/guard"
@@ -28,7 +29,7 @@ type InsertSessionRequest struct {
 //
 // This handler currently performs only the ownership check and returns no content
 // when access is allowed.
-func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -117,5 +118,45 @@ func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	_, _ = w.Write(payload)
+}
+
+func (h *Handler) GetSessions(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	offset := int32(0)
+
+	requestURL := r.URL.Query()
+	offsetString := requestURL.Get("offset")
+	if offsetString != "" {
+		parsedOffset, err := strconv.ParseInt(offsetString, 10, 32)
+		if err != nil || parsedOffset < 0 {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		offset = int32(parsedOffset)
+	}
+
+	sessionList, err := h.sessions.GetSessions(r.Context(), sessions.GetSessionInput{
+		PhotographerID: userID,
+		Offset:         offset,
+	})
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	payload, err := json.Marshal(sessionList)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(payload)
 }
