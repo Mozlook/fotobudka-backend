@@ -53,7 +53,4 @@ FROM sessions
 WHERE photographer_id = $1
 ORDER BY created_at DESC
 LIMIT 200
-OFFSET $2
-
-
-
+OFFSET $2;
