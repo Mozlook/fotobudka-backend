@@ -53,7 +53,20 @@ func (h *Handler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	session, err := h.sessions.GetSessionByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	payload, err := json.Marshal(session)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
 }
 
 // InsertSession creates a new session for the authenticated photographer.
@@ -145,7 +158,7 @@ func (h *Handler) GetSessions(w http.ResponseWriter, r *http.Request) {
 		offset = int32(parsedOffset)
 	}
 
-	sessionList, err := h.sessions.GetSessions(r.Context(), sessions.GetSessionInput{
+	sessionList, err := h.sessions.GetSessions(r.Context(), sessions.GetSessionsInput{
 		PhotographerID: userID,
 		Offset:         offset,
 	})
