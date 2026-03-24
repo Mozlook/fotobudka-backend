@@ -57,6 +57,8 @@ func (r *Repository) InsertSession(ctx context.Context, in InsertSessionInput) (
 	}, nil
 }
 
+// GetSessions returns a paginated list of sessions owned by the given
+// photographer.
 func (r *Repository) GetSessions(ctx context.Context, in GetSessionInput) ([]Session, error) {
 	queryResponse, err := r.q.GetSessions(ctx, dbgen.GetSessionsParams{
 		PhotographerID: in.PhotographerID,
