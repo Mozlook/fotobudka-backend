@@ -95,6 +95,7 @@ func (r *Repository) GetSessions(ctx context.Context, in GetSessionsInput) ([]Se
 	return sessionsList, nil
 }
 
+// GetSessionByID returns the full session details for the given session ID.
 func (r *Repository) GetSessionByID(ctx context.Context, id uuid.UUID) (Session, error) {
 	row, err := r.q.GetSessionByID(ctx, id)
 	if err != nil {

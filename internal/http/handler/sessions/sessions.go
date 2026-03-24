@@ -134,10 +134,11 @@ func (h *Handler) GetAllSessions(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(payload)
 }
 
-// GetSession ensures that the authenticated photographer has access to the requested session.
+// GetSessionByID returns the details of a session owned by the authenticated
+// photographer.
 //
-// This handler currently performs only the ownership check and returns no content
-// when access is allowed.
+// The handler validates the session ID from the route, verifies ownership,
+// and returns the session as JSON.
 func (h *Handler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
@@ -162,9 +163,10 @@ func (h *Handler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.sessions.GetSessionByID(r.Context(), userID)
+	session, err := h.sessions.GetSessionByID(r.Context(), sessionID)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 
 	payload, err := json.Marshal(session)
