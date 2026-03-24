@@ -90,11 +90,11 @@ func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(payload)
 }
 
-// GetSessions returns a paginated list of sessions owned by the authenticated
+// GetAllSessions returns a paginated list of sessions owned by the authenticated
 // photographer.
 //
 // The optional offset query parameter controls pagination and defaults to 0.
-func (h *Handler) GetSessions(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetAllSessions(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)

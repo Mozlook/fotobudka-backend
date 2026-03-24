@@ -26,8 +26,8 @@ type InsertSessionInput struct {
 	PaymentMode     string    `json:"payment_mode"`
 }
 
-// GetSessionInput contains the filters used to list sessions for a photographer.
-type GetSessionInput struct {
+// GetSessionsInput contains the filters used to list sessions for a photographer.
+type GetSessionsInput struct {
 	PhotographerID uuid.UUID
 	Offset         int32
 }
