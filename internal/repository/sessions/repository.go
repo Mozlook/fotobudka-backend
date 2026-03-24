@@ -59,7 +59,7 @@ func (r *Repository) InsertSession(ctx context.Context, in InsertSessionInput) (
 
 // GetSessions returns a paginated list of sessions owned by the given
 // photographer.
-func (r *Repository) GetSessions(ctx context.Context, in GetSessionInput) ([]Session, error) {
+func (r *Repository) GetSessions(ctx context.Context, in GetSessionsInput) ([]Session, error) {
 	queryResponse, err := r.q.GetSessions(ctx, dbgen.GetSessionsParams{
 		PhotographerID: in.PhotographerID,
 		Offset:         in.Offset,
@@ -93,4 +93,30 @@ func (r *Repository) GetSessions(ctx context.Context, in GetSessionInput) ([]Ses
 	}
 
 	return sessionsList, nil
+}
+
+func (r *Repository) GetSessionByID(ctx context.Context, id uuid.UUID) (Session, error) {
+	row, err := r.q.GetSessionByID(ctx, id)
+	if err != nil {
+		return Session{}, fmt.Errorf("get sessions: %w", err)
+	}
+
+	session := Session{
+		ID:              row.ID,
+		PhotographerID:  row.PhotographerID,
+		Title:           row.Title,
+		ClientEmail:     row.ClientEmail,
+		Status:          row.Status,
+		BasePriceCents:  row.BasePriceCents,
+		IncludedCount:   row.IncludedCount,
+		ExtraPriceCents: row.ExtraPriceCents,
+		MinSelectCount:  row.MinSelectCount,
+		Currency:        row.Currency,
+		PaymentMode:     row.PaymentMode,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		ClosedAt:        row.ClosedAt,
+		DeleteAfter:     row.DeleteAfter,
+	}
+	return session, nil
 }
