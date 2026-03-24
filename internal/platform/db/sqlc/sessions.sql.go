@@ -7,9 +7,46 @@ package dbgen
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+const closeSession = `-- name: CloseSession :one
+UPDATE sessions
+SET
+  status = 'closed',
+  closed_at = CURRENT_TIMESTAMP,
+  delete_after = CURRENT_TIMESTAMP + INTERVAL '90 days'
+WHERE id = $1
+RETURNING
+  id,
+  title,
+  status,
+  closed_at,
+  delete_after
+`
+
+type CloseSessionRow struct {
+	ID          uuid.UUID  `db:"id" json:"id"`
+	Title       string     `db:"title" json:"title"`
+	Status      string     `db:"status" json:"status"`
+	ClosedAt    *time.Time `db:"closed_at" json:"closed_at"`
+	DeleteAfter *time.Time `db:"delete_after" json:"delete_after"`
+}
+
+func (q *Queries) CloseSession(ctx context.Context, id uuid.UUID) (CloseSessionRow, error) {
+	row := q.db.QueryRow(ctx, closeSession, id)
+	var i CloseSessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Status,
+		&i.ClosedAt,
+		&i.DeleteAfter,
+	)
+	return i, err
+}
 
 const getSessionByID = `-- name: GetSessionByID :one
 SELECT 

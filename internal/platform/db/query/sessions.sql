@@ -78,12 +78,13 @@ WHERE id = $1;
 -- name: CloseSession :one
 UPDATE sessions
 SET
-status = $2,
-closed_at = $3,
-delete_after = $4
+  status = 'closed',
+  closed_at = CURRENT_TIMESTAMP,
+  delete_after = CURRENT_TIMESTAMP + INTERVAL '90 days'
 WHERE id = $1
 RETURNING
-id,
-title,
-status,
-delete_after;
+  id,
+  title,
+  status,
+  closed_at,
+  delete_after;
