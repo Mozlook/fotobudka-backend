@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// InsertSessionRequest describes the payload used to create a new session.
 type InsertSessionRequest struct {
 	Title           string  `json:"title"`
 	ClientEmail     *string `json:"client_email"`
@@ -54,6 +55,11 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// InsertSession creates a new session for the authenticated photographer.
+//
+// The photographer identifier is taken from the request context, not from
+// the request body. On success, the handler returns the created session ID
+// and its initial status.
 func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
