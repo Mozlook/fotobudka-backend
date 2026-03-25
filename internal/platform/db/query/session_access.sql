@@ -13,3 +13,15 @@ sqlc.arg(token_hmac)
 RETURNING
   id,
   created_at;
+
+-- name: RevokeSessionAccess :many
+UPDATE session_access
+SET revoked_at = now()
+WHERE session_id = $1
+AND revoked_at IS NULL
+RETURNING
+  id,
+  session_id,
+  created_at,
+  revoked_at,
+  last_used_at;

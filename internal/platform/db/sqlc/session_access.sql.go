@@ -52,3 +52,50 @@ func (q *Queries) InsertSessionAccess(ctx context.Context, arg InsertSessionAcce
 	err := row.Scan(&i.ID, &i.CreatedAt)
 	return i, err
 }
+
+const revokeSessionAccess = `-- name: RevokeSessionAccess :many
+UPDATE session_access
+SET revoked_at = now()
+WHERE session_id = $1
+AND revoked_at IS NULL
+RETURNING
+  id,
+  session_id,
+  created_at,
+  revoked_at,
+  last_used_at
+`
+
+type RevokeSessionAccessRow struct {
+	ID         uuid.UUID  `db:"id" json:"id"`
+	SessionID  uuid.UUID  `db:"session_id" json:"session_id"`
+	CreatedAt  time.Time  `db:"created_at" json:"created_at"`
+	RevokedAt  *time.Time `db:"revoked_at" json:"revoked_at"`
+	LastUsedAt *time.Time `db:"last_used_at" json:"last_used_at"`
+}
+
+func (q *Queries) RevokeSessionAccess(ctx context.Context, sessionID uuid.UUID) ([]RevokeSessionAccessRow, error) {
+	rows, err := q.db.Query(ctx, revokeSessionAccess, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RevokeSessionAccessRow{}
+	for rows.Next() {
+		var i RevokeSessionAccessRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SessionID,
+			&i.CreatedAt,
+			&i.RevokedAt,
+			&i.LastUsedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
