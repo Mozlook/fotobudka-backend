@@ -179,6 +179,7 @@ func (q *Queries) GetSessions(ctx context.Context, arg GetSessionsParams) ([]Ses
 
 const insertSession = `-- name: InsertSession :one
 INSERT INTO sessions (
+  id,
   photographer_id,
   title,
   client_email,
@@ -198,7 +199,8 @@ $5,
 $6,
 $7,
 $8,
-$9
+$9,
+$10
 )
 RETURNING 
   id,
@@ -206,6 +208,7 @@ RETURNING
 `
 
 type InsertSessionParams struct {
+	ID              uuid.UUID `db:"id" json:"id"`
 	PhotographerID  uuid.UUID `db:"photographer_id" json:"photographer_id"`
 	Title           string    `db:"title" json:"title"`
 	ClientEmail     *string   `db:"client_email" json:"client_email"`
@@ -224,6 +227,7 @@ type InsertSessionRow struct {
 
 func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (InsertSessionRow, error) {
 	row := q.db.QueryRow(ctx, insertSession,
+		arg.ID,
 		arg.PhotographerID,
 		arg.Title,
 		arg.ClientEmail,

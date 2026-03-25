@@ -7,6 +7,7 @@ WHERE id = $1;
 
 -- name: InsertSession :one
 INSERT INTO sessions (
+  id,
   photographer_id,
   title,
   client_email,
@@ -18,6 +19,7 @@ INSERT INTO sessions (
   payment_mode
 
 ) VALUES(
+sqlc.arg(id),
 sqlc.arg(photographer_id),
 sqlc.arg(title),
 sqlc.narg(client_email),

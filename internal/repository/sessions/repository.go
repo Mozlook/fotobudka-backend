@@ -38,6 +38,7 @@ func (r *Repository) GetSessionOwnerByID(ctx context.Context, sessionID uuid.UUI
 // the created session identifier together with its initial status.
 func (r *Repository) InsertSession(ctx context.Context, in InsertSessionInput) (SessionStatus, error) {
 	session, err := r.q.InsertSession(ctx, dbgen.InsertSessionParams{
+		ID:              in.ID,
 		PhotographerID:  in.PhotographerID,
 		Title:           in.Title,
 		ClientEmail:     in.ClientEmail,

@@ -15,15 +15,16 @@ type SessionOwner struct {
 
 // InsertSessionInput contains the data required to create a new session.
 type InsertSessionInput struct {
-	PhotographerID  uuid.UUID `json:"photographer_id"`
-	Title           string    `json:"title"`
-	ClientEmail     *string   `json:"client_email"`
-	BasePriceCents  int32     `json:"base_price_cents"`
-	IncludedCount   int32     `json:"included_count"`
-	ExtraPriceCents int32     `json:"extra_price_cents"`
-	MinSelectCount  int32     `json:"min_select_count"`
-	Currency        string    `json:"currency"`
-	PaymentMode     string    `json:"payment_mode"`
+	ID              uuid.UUID
+	PhotographerID  uuid.UUID
+	Title           string
+	ClientEmail     *string
+	BasePriceCents  int32
+	IncludedCount   int32
+	ExtraPriceCents int32
+	MinSelectCount  int32
+	Currency        string
+	PaymentMode     string
 }
 
 // GetSessionsInput contains the filters used to list sessions for a photographer.

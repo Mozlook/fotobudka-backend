@@ -62,8 +62,10 @@ func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 			clientEmail = &trimmed
 		}
 	}
+	id := uuid.New()
 
 	sessionStatus, err := h.sessions.InsertSession(r.Context(), sessions.InsertSessionInput{
+		ID:              id,
 		PhotographerID:  userID,
 		Title:           req.Title,
 		ClientEmail:     clientEmail,
