@@ -150,3 +150,25 @@ func (r *Repository) InsertSessionAccess(ctx context.Context, in InsertSessionAc
 	}
 	return SessionAccess{ID: row.ID, CreatedAt: row.CreatedAt}, nil
 }
+
+func (r *Repository) RevokeSessionAccess(ctx context.Context, sessionID uuid.UUID) ([]RevokedSessionAccess, error) {
+	rows, err := r.q.RevokeSessionAccess(ctx, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("revoke session access: %w", err)
+	}
+
+	revokedSessionAccessList := make([]RevokedSessionAccess, len(rows))
+
+	for _, row := range rows {
+		revokedSessionAccess := RevokedSessionAccess{
+			ID:         row.ID,
+			SessionID:  row.SessionID,
+			CreatedAt:  row.CreatedAt,
+			RevokedAt:  row.RevokedAt,
+			LastUsedAt: row.LastUsedAt,
+		}
+
+		revokedSessionAccessList = append(revokedSessionAccessList, revokedSessionAccess)
+	}
+	return revokedSessionAccessList, nil
+}

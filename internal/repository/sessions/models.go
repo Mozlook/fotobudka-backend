@@ -77,3 +77,11 @@ type SessionAccess struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 }
+
+type RevokedSessionAccess struct {
+	ID         uuid.UUID
+	SessionID  uuid.UUID
+	CreatedAt  time.Time
+	RevokedAt  *time.Time
+	LastUsedAt *time.Time
+}
