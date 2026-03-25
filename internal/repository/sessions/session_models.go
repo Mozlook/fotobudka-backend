@@ -33,13 +33,6 @@ type GetSessionsInput struct {
 	Offset         int32
 }
 
-type InsertSessionAccessInput struct {
-	ID        uuid.UUID
-	SessionID uuid.UUID
-	CodeHmac  string
-	TokenHmac string
-}
-
 // SessionStatus contains the identifier and current status of a session.
 type SessionStatus struct {
 	ID     uuid.UUID `json:"id"`
@@ -71,17 +64,4 @@ type ClosedSession struct {
 	Status      string
 	ClosedAt    *time.Time
 	DeleteAfter *time.Time
-}
-
-type SessionAccess struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-}
-
-type RevokedSessionAccess struct {
-	ID         uuid.UUID
-	SessionID  uuid.UUID
-	CreatedAt  time.Time
-	RevokedAt  *time.Time
-	LastUsedAt *time.Time
 }
