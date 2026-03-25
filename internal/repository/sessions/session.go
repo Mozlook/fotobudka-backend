@@ -113,6 +113,8 @@ func (r *Repository) GetSessionByID(ctx context.Context, id uuid.UUID) (Session,
 	return session, nil
 }
 
+// CloseSession marks the given session as closed and returns the updated
+// closing metadata, including retention information.
 func (r *Repository) CloseSession(ctx context.Context, sessionID uuid.UUID) (ClosedSession, error) {
 	row, err := r.q.CloseSession(ctx, sessionID)
 	if err != nil {
