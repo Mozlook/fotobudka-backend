@@ -34,10 +34,10 @@ type GetSessionsInput struct {
 }
 
 type InsertSessionAccessInput struct {
-	ID         uuid.UUID
-	SessionID  uuid.UUID
-	Code_hmac  string
-	Token_hmac string
+	ID        uuid.UUID
+	SessionID uuid.UUID
+	CodeHmac  string
+	TokenHmac string
 }
 
 // SessionStatus contains the identifier and current status of a session.

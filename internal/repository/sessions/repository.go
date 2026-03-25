@@ -142,8 +142,8 @@ func (r *Repository) InsertSessionAccess(ctx context.Context, in InsertSessionAc
 	row, err := r.q.InsertSessionAccess(ctx, dbgen.InsertSessionAccessParams{
 		ID:        in.ID,
 		SessionID: in.SessionID,
-		CodeHmac:  in.Code_hmac,
-		TokenHmac: in.Token_hmac,
+		CodeHmac:  in.CodeHmac,
+		TokenHmac: in.TokenHmac,
 	})
 	if err != nil {
 		return SessionAccess{}, fmt.Errorf("insert session access: %w", err)
