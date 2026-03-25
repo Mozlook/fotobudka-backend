@@ -35,8 +35,8 @@ type GetSessionsInput struct {
 
 // SessionStatus contains the identifier and current status of a session.
 type SessionStatus struct {
-	ID     uuid.UUID `json:"id"`
-	Status string    `json:"status"`
+	ID     uuid.UUID
+	Status string
 }
 
 // Session represents a photographer session returned from the repository.
@@ -58,6 +58,8 @@ type Session struct {
 	DeleteAfter     *time.Time
 }
 
+// ClosedSession contains the data returned after a session has been
+// marked as closed.
 type ClosedSession struct {
 	ID          uuid.UUID
 	Title       string

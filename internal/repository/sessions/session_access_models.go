@@ -6,6 +6,8 @@ import (
 	"github.com/google/uuid"
 )
 
+// InsertSessionAccessInput contains the data required to create a new
+// session access record.
 type InsertSessionAccessInput struct {
 	ID        uuid.UUID
 	SessionID uuid.UUID
@@ -13,11 +15,15 @@ type InsertSessionAccessInput struct {
 	TokenHmac string
 }
 
+// SessionAccess contains the minimal data returned after creating a
+// session access record.
 type SessionAccess struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 }
 
+// RevokedSessionAccess represents a session access record that has been
+// revoked.
 type RevokedSessionAccess struct {
 	ID         uuid.UUID
 	SessionID  uuid.UUID
