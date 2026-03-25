@@ -14,13 +14,15 @@ import (
 
 const insertSessionAccess = `-- name: InsertSessionAccess :one
 INSERT INTO session_access (
+  id,
   session_id,
   code_hmac,
   token_hmac
 ) VALUES (
 $1,
 $2,
-$3
+$3,
+$4
 )
 RETURNING
   id,
@@ -28,6 +30,7 @@ RETURNING
 `
 
 type InsertSessionAccessParams struct {
+	ID        uuid.UUID `db:"id" json:"id"`
 	SessionID uuid.UUID `db:"session_id" json:"session_id"`
 	CodeHmac  string    `db:"code_hmac" json:"code_hmac"`
 	TokenHmac string    `db:"token_hmac" json:"token_hmac"`
@@ -39,7 +42,12 @@ type InsertSessionAccessRow struct {
 }
 
 func (q *Queries) InsertSessionAccess(ctx context.Context, arg InsertSessionAccessParams) (InsertSessionAccessRow, error) {
-	row := q.db.QueryRow(ctx, insertSessionAccess, arg.SessionID, arg.CodeHmac, arg.TokenHmac)
+	row := q.db.QueryRow(ctx, insertSessionAccess,
+		arg.ID,
+		arg.SessionID,
+		arg.CodeHmac,
+		arg.TokenHmac,
+	)
 	var i InsertSessionAccessRow
 	err := row.Scan(&i.ID, &i.CreatedAt)
 	return i, err

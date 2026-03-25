@@ -132,8 +132,21 @@ func (r *Repository) CloseSession(ctx context.Context, sessionID uuid.UUID) (Clo
 	return ClosedSession{
 		ID:          row.ID,
 		Title:       row.Title,
-		Status:      string,
+		Status:      row.Status,
 		ClosedAt:    row.ClosedAt,
 		DeleteAfter: row.DeleteAfter,
 	}, nil
+}
+
+func (r *Repository) InsertSessionAccess(ctx context.Context, in InsertSessionAccessInput) (SessionAccess, error) {
+	row, err := r.q.InsertSessionAccess(ctx, dbgen.InsertSessionAccessParams{
+		ID:        in.ID,
+		SessionID: in.SessionID,
+		CodeHmac:  in.Code_hmac,
+		TokenHmac: in.Token_hmac,
+	})
+	if err != nil {
+		return SessionAccess{}, fmt.Errorf("insert session access: %w", err)
+	}
+	return SessionAccess{ID: row.ID, CreatedAt: row.CreatedAt}, nil
 }
