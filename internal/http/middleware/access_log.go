@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -41,11 +42,22 @@ func AccessLog(log zerolog.Logger, next http.Handler) http.Handler {
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
 
+		_, after, found := strings.Cut(r.Pattern, " ")
+
+		path := r.Pattern
+		if found {
+			path = after
+		}
+
+		if path == "" {
+			path = "/unmatched"
+		}
+
 		log.Info().
 			Str("event_type", "http_request").
 			Str("request_id", RequestIDFromContext(r.Context())).
 			Str("http_method", r.Method).
-			Str("http_path", r.URL.Path).
+			Str("http_path", path).
 			Str("user_agent", r.UserAgent()).
 			Str("src_ip", r.RemoteAddr).
 			Int("http_status", rec.status).
