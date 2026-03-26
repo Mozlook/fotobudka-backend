@@ -18,8 +18,12 @@ type Result struct {
 
 type Service struct {
 	pool   *pgxpool.Pool
-	repo   sessions.Repository
+	repo   *sessions.Repository
 	secret []byte
+}
+
+func New(pool *pgxpool.Pool, repo *sessions.Repository, secret []byte) *Service {
+	return &Service{pool: pool, repo: repo, secret: secret}
 }
 
 func (s *Service) RegenerateSessionAccess(ctx context.Context, sessionID uuid.UUID) (Result, error) {
