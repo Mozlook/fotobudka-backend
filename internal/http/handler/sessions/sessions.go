@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Mozlook/fotobudka-backend/internal/guard"
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
@@ -23,6 +25,12 @@ type InsertSessionRequest struct {
 	MinSelectCount  int32   `json:"min_select_count"`
 	Currency        string  `json:"currency"`
 	PaymentMode     string  `json:"payment_mode"`
+}
+
+type RegenerateSessionAccessResponse struct {
+	Code      string    `json:"code"`
+	Link      string    `json:"link"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // InsertSession creates a new session for the authenticated photographer.
@@ -220,5 +228,56 @@ func (h *Handler) CloseSession(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
+}
+
+func (h *Handler) RegenerateSessionAccess(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	sessionID, err := uuid.Parse(r.PathValue("sessionId"))
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+
+	}
+
+	err = guard.EnsureSessionOwner(r.Context(), h.sessions, sessionID, userID)
+	if err != nil {
+		if errors.Is(err, guard.ErrSessionNotAccessible) {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	sessionAccess, err := h.sessionAccess.RegenerateSessionAccess(r.Context(), sessionID)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	link, err := url.JoinPath(h.frontendOrigin, "s", sessionAccess.Token)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	payload, err := json.Marshal(RegenerateSessionAccessResponse{
+		Code:      sessionAccess.Code,
+		Link:      link,
+		CreatedAt: sessionAccess.CreatedAt,
+	})
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write(payload)
 }
