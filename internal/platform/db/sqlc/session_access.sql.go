@@ -12,6 +12,52 @@ import (
 	"github.com/google/uuid"
 )
 
+const getClientSessionByTokenHMAC = `-- name: GetClientSessionByTokenHMAC :one
+SELECT 
+  sessions.id,
+  sessions.status,
+  sessions.base_price_cents,
+  sessions.included_count,
+  sessions.extra_price_cents,
+  sessions.min_select_count,
+  sessions.currency,
+  sessions.payment_mode,
+  sessions.title
+FROM session_access
+JOIN sessions ON session_access.session_id = sessions.id
+WHERE session_access.token_hmac = $1
+AND session_access.revoked_at IS NULL
+`
+
+type GetClientSessionByTokenHMACRow struct {
+	ID              uuid.UUID `db:"id" json:"id"`
+	Status          string    `db:"status" json:"status"`
+	BasePriceCents  int32     `db:"base_price_cents" json:"base_price_cents"`
+	IncludedCount   int32     `db:"included_count" json:"included_count"`
+	ExtraPriceCents int32     `db:"extra_price_cents" json:"extra_price_cents"`
+	MinSelectCount  int32     `db:"min_select_count" json:"min_select_count"`
+	Currency        string    `db:"currency" json:"currency"`
+	PaymentMode     string    `db:"payment_mode" json:"payment_mode"`
+	Title           string    `db:"title" json:"title"`
+}
+
+func (q *Queries) GetClientSessionByTokenHMAC(ctx context.Context, tokenHmac string) (GetClientSessionByTokenHMACRow, error) {
+	row := q.db.QueryRow(ctx, getClientSessionByTokenHMAC, tokenHmac)
+	var i GetClientSessionByTokenHMACRow
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.BasePriceCents,
+		&i.IncludedCount,
+		&i.ExtraPriceCents,
+		&i.MinSelectCount,
+		&i.Currency,
+		&i.PaymentMode,
+		&i.Title,
+	)
+	return i, err
+}
+
 const insertSessionAccess = `-- name: InsertSessionAccess :one
 INSERT INTO session_access (
   id,

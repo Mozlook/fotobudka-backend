@@ -25,3 +25,19 @@ RETURNING
   created_at,
   revoked_at,
   last_used_at;
+
+-- name: GetClientSessionByTokenHMAC :one
+SELECT 
+  sessions.id,
+  sessions.status,
+  sessions.base_price_cents,
+  sessions.included_count,
+  sessions.extra_price_cents,
+  sessions.min_select_count,
+  sessions.currency,
+  sessions.payment_mode,
+  sessions.title
+FROM session_access
+JOIN sessions ON session_access.session_id = sessions.id
+WHERE session_access.token_hmac = $1
+AND session_access.revoked_at IS NULL;
