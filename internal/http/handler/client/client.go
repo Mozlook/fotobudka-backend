@@ -9,6 +9,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type ClientSessionByCodeRequest struct {
+	Code         string `json:"code"`
+	CaptchaToken string `json:"captcha_token"`
+}
+
 type ClientSessionResponse struct {
 	ID              uuid.UUID `json:"id"`
 	Status          string    `json:"status"`
@@ -29,6 +34,55 @@ func (h *Handler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clientSession, err := h.sessionAccess.GetClientSessionByToken(r.Context(), token)
+	if err != nil {
+		if errors.Is(err, sessionaccess.ErrSessionAccessNotFound) {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	payload, err := json.Marshal(ClientSessionResponse{
+		ID:              clientSession.ID,
+		Status:          clientSession.Status,
+		BasePriceCents:  clientSession.BasePriceCents,
+		IncludedCount:   clientSession.IncludedCount,
+		ExtraPriceCents: clientSession.ExtraPriceCents,
+		MinSelectCount:  clientSession.MinSelectCount,
+		Currency:        clientSession.Currency,
+		PaymentMode:     clientSession.PaymentMode,
+		Title:           clientSession.Title,
+	})
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
+}
+
+func (h *Handler) GetSessionByCode(w http.ResponseWriter, r *http.Request) {
+	var requestBody ClientSessionByCodeRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+
+	err := dec.Decode(&requestBody)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	code := requestBody.Code
+	if code == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	clientSession, err := h.sessionAccess.GetClientSessionByCode(r.Context(), code)
 	if err != nil {
 		if errors.Is(err, sessionaccess.ErrSessionAccessNotFound) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
