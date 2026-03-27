@@ -68,3 +68,22 @@ func (r *Repository) GetClientSessionByTokenHMAC(ctx context.Context, tokenHMAC 
 		Title:           row.Title,
 	}, nil
 }
+
+func (r *Repository) GetClientSessionByCodeHMAC(ctx context.Context, codeHMAC string) (ClientSession, error) {
+	row, err := r.q.GetClientSessionByCodeHMAC(ctx, codeHMAC)
+	if err != nil {
+		return ClientSession{}, fmt.Errorf("get client session by codeHMAC: %w", err)
+	}
+
+	return ClientSession{
+		ID:              row.ID,
+		Status:          row.Status,
+		BasePriceCents:  row.BasePriceCents,
+		IncludedCount:   row.IncludedCount,
+		ExtraPriceCents: row.ExtraPriceCents,
+		MinSelectCount:  row.MinSelectCount,
+		Currency:        row.Currency,
+		PaymentMode:     row.PaymentMode,
+		Title:           row.Title,
+	}, nil
+}
