@@ -28,7 +28,7 @@ func (h *Handler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientSession, err := h.sessionAccess.GetClientSessionByTokenHMAC(r.Context(), token)
+	clientSession, err := h.sessionAccess.GetClientSessionByToken(r.Context(), token)
 	if err != nil {
 		if errors.Is(err, sessionaccess.ErrSessionAccessNotFound) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
