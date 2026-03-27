@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-var ErrAccessNoFound = errors.New("access not found")
+var ErrSessionAccessNotFound = errors.New("access not found")
 
 func (s *Service) GetClientSessionByTokenHMAC(ctx context.Context, token string) (sessions.ClientSession, error) {
 	tokenHMAC := hmacHex(s.secret, token)
@@ -16,7 +16,7 @@ func (s *Service) GetClientSessionByTokenHMAC(ctx context.Context, token string)
 	clientSession, err := s.repo.GetClientSessionByTokenHMAC(ctx, tokenHMAC)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return sessions.ClientSession{}, ErrAccessNoFound
+			return sessions.ClientSession{}, ErrSessionAccessNotFound
 		}
 
 		return sessions.ClientSession{}, err
