@@ -49,3 +49,22 @@ func (r *Repository) RevokeSessionAccess(ctx context.Context, sessionID uuid.UUI
 	}
 	return revokedSessionAccessList, nil
 }
+
+func (r *Repository) GetClientSessionByTokenHMAC(ctx context.Context, tokenHMAC string) (ClientSession, error) {
+	row, err := r.q.GetClientSessionByTokenHMAC(ctx, tokenHMAC)
+	if err != nil {
+		return ClientSession{}, fmt.Errorf("get client session by tokenHMAC: %w", err)
+	}
+
+	return ClientSession{
+		ID:              row.ID,
+		Status:          row.Status,
+		BasePriceCents:  row.BasePriceCents,
+		IncludedCount:   row.IncludedCount,
+		ExtraPriceCents: row.ExtraPriceCents,
+		MinSelectCount:  row.MinSelectCount,
+		Currency:        row.Currency,
+		PaymentMode:     row.PaymentMode,
+		Title:           row.Title,
+	}, nil
+}

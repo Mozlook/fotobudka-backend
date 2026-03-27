@@ -31,3 +31,15 @@ type RevokedSessionAccess struct {
 	RevokedAt  *time.Time
 	LastUsedAt *time.Time
 }
+
+type ClientSession struct {
+	ID              uuid.UUID
+	Status          string
+	BasePriceCents  int32
+	IncludedCount   int32
+	ExtraPriceCents int32
+	MinSelectCount  int32
+	Currency        string
+	PaymentMode     string
+	Title           string
+}
