@@ -3,7 +3,9 @@ package client
 import (
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
+	"strings"
 
 	"github.com/Mozlook/fotobudka-backend/internal/sessionaccess"
 	"github.com/google/uuid"
@@ -65,6 +67,9 @@ func (h *Handler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetSessionByCode(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 8*1024)
+	defer r.Body.Close()
+
 	var requestBody ClientSessionByCodeRequest
 
 	dec := json.NewDecoder(r.Body)
@@ -76,18 +81,61 @@ func (h *Handler) GetSessionByCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	code := requestBody.Code
+	code := strings.TrimSpace(requestBody.Code)
 	if code == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	ip := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		ip = host
+	}
+
+	captchaRequired, err := h.redis.RequiresCodeCaptcha(r.Context(), ip)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	if captchaRequired {
+		payload, err := json.Marshal(struct {
+			ErrorCode string `json:"error_code"`
+			Message   string `json:"message"`
+		}{
+			ErrorCode: "captcha_required",
+			Message:   "captcha is required",
+		})
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write(payload)
 		return
 	}
 
 	clientSession, err := h.sessionAccess.GetClientSessionByCode(r.Context(), code)
 	if err != nil {
 		if errors.Is(err, sessionaccess.ErrSessionAccessNotFound) {
+			_, redisErr := h.redis.RegisterFailedCodeAttempt(r.Context(), ip)
+			if redisErr != nil {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
+
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.redis.ClearFailedCodeAttempts(r.Context(), ip)
+	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
