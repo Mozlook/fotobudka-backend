@@ -1,0 +1,35 @@
+package redis
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+)
+
+func (c *Client) RegisterFailedCodeAttempt(ctx context.Context, ip string) (int64, error) {
+	key := fmt.Sprint("code_attempts_%s", ip)
+	result, err := c.db.Incr(ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+	c.db.TTL(ctx, key).SetVal(c.failedCodeAttemptsTTL)
+
+	return result, nil
+}
+
+func (c *Client) RequiresCodeCaptcha(ctx context.Context, ip string) (bool, error) {
+	key := fmt.Sprint("code_attempts_%s", ip)
+	result, err := c.db.Get(ctx, key).Result()
+	if err != nil {
+		return false, err
+	}
+	failedAttempts, err := strconv.Atoi(result)
+	if err != nil {
+		return false, err
+	}
+
+	if failedAttempts > c.codeCaptchaRhreshold {
+		return true, nil
+	}
+	return false, nil
+}

@@ -12,7 +12,7 @@ import (
 type Client struct {
 	db                    *goredis.Client
 	failedCodeAttemptsTTL time.Duration
-	codeCaptchaRhreshold  int
+	codeCaptchaThreshold  int
 }
 
 func New(redisConfig config.RedisConfig, captchaConfig config.CaptchaConfig) (*Client, error) {
@@ -30,6 +30,6 @@ func New(redisConfig config.RedisConfig, captchaConfig config.CaptchaConfig) (*C
 	return &Client{
 		db:                    rdb,
 		failedCodeAttemptsTTL: captchaConfig.FailedCodeAttemptsTTL,
-		codeCaptchaRhreshold:  captchaConfig.CodeCaptchaThreshold,
+		codeCaptchaThreshold:  captchaConfig.CodeCaptchaThreshold,
 	}, nil
 }
