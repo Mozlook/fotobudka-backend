@@ -3,16 +3,20 @@ package redis
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/Mozlook/fotobudka-backend/internal/config"
 	goredis "github.com/redis/go-redis/v9"
 )
 
 type Client struct {
-	db *goredis.Client
+	db                    *goredis.Client
+	failedCodeAttemptsTTL time.Duration
+	codeCaptchaRhreshold  int
 }
 
-func New(redisURL string) (*Client, error) {
-	opt, err := goredis.ParseURL(redisURL)
+func New(redisConfig config.RedisConfig, captchaConfig config.CaptchaConfig) (*Client, error) {
+	opt, err := goredis.ParseURL(redisConfig.URL)
 	if err != nil {
 		return nil, fmt.Errorf("parse redis url: %w", err)
 	}
@@ -23,5 +27,9 @@ func New(redisURL string) (*Client, error) {
 		return nil, fmt.Errorf("ping redis: %w", err)
 	}
 
-	return &Client{db: rdb}, nil
+	return &Client{
+		db:                    rdb,
+		failedCodeAttemptsTTL: captchaConfig.FailedCodeAttemptsTTL,
+		codeCaptchaRhreshold:  captchaConfig.CodeCaptchaThreshold,
+	}, nil
 }

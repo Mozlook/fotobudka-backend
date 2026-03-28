@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 // Load reads configuration from environment variables, applies defaults,
 // and returns a populated Config value.
 func Load() (Config, error) {
@@ -19,6 +21,16 @@ func Load() (Config, error) {
 	}
 
 	cookieSecure, err := getEnvBool("COOKIE_SECURE", false)
+	if err != nil {
+		return Config{}, err
+	}
+
+	failedCodeAttemptsTTL, err := getEnvDuration("CODE_LOGIN_ATTEMPTS_TTL", time.Minute*10)
+	if err != nil {
+		return Config{}, err
+	}
+
+	codeCaptchaThreshold, err := getEnvInt("CODE_LOGIN_CAPTCHA_THRESHOLD", 2)
 	if err != nil {
 		return Config{}, err
 	}
@@ -57,8 +69,10 @@ func Load() (Config, error) {
 			GoogleRedirectURL:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", ""),
 		},
 		Captcha: CaptchaConfig{
-			RecaptchaSiteKey:   getEnv("RECAPTCHA_SITE_KEY", ""),
-			RecaptchaSecretKey: getEnv("RECAPTCHA_SECRET_KEY", ""),
+			RecaptchaSiteKey:      getEnv("RECAPTCHA_SITE_KEY", ""),
+			RecaptchaSecretKey:    getEnv("RECAPTCHA_SECRET_KEY", ""),
+			FailedCodeAttemptsTTL: failedCodeAttemptsTTL,
+			CodeCaptchaThreshold:  codeCaptchaThreshold,
 		},
 		Redis: RedisConfig{
 			URL: getEnv("REDIS_URL", ""),

@@ -3,8 +3,10 @@ package config
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func getEnv(key, fallback string) string {
@@ -44,6 +46,20 @@ func getEnvBool(key string, fallback bool) (bool, error) {
 	return value, nil
 }
 
+func getEnvDuration(key string, fallback time.Duration) (time.Duration, error) {
+	raw := getEnv(key, "")
+	if isBlank(raw) {
+		return fallback, nil
+	}
+
+	value, err := time.ParseDuration(raw)
+	if err != nil {
+		return time.Duration(0), fmt.Errorf("config: %s must be a duration: %w", key, err)
+	}
+
+	return value, nil
+}
+
 func isBlank(value string) bool {
 	return strings.TrimSpace(value) == ""
 }
@@ -63,11 +79,5 @@ func hasAll(values ...string) bool {
 		return false
 	}
 
-	for _, value := range values {
-		if isBlank(value) {
-			return false
-		}
-	}
-
-	return true
+	return !slices.ContainsFunc(values, isBlank)
 }

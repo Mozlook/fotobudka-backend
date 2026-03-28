@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 // Config groups all runtime configuration sections used by the application.
 type Config struct {
 	App     AppConfig
@@ -99,7 +101,9 @@ type CaptchaConfig struct {
 	RecaptchaSiteKey string
 
 	// RecaptchaSecretKey is the private server-side secret used for verification.
-	RecaptchaSecretKey string
+	RecaptchaSecretKey    string
+	FailedCodeAttemptsTTL time.Duration
+	CodeCaptchaThreshold  int
 }
 
 // RedisConfig contains Redis connection settings.

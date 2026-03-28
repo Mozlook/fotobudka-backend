@@ -34,6 +34,12 @@ func (c Config) Validate() error {
 		errs = append(errs, fmt.Sprintf("BASE_URL %s", err.Error()))
 	}
 
+	if isBlank(c.HTTP.FrontendOrigin) {
+		errs = append(errs, "FRONTEND_ORIGIN is required")
+	} else if err := validateOrigin(c.HTTP.FrontendOrigin); err != nil {
+		errs = append(errs, fmt.Sprintf("FRONTEND_ORIGIN %s", err.Error()))
+	}
+
 	if isBlank(c.DB.URL) {
 		errs = append(errs, "DB_URL is required")
 	} else if err := validateURL(c.DB.URL, "postgres", "postgresql"); err != nil {
@@ -91,27 +97,6 @@ func (c Config) Validate() error {
 		errs = append(errs, "GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set together")
 	}
 
-	if hasAny(c.Captcha.RecaptchaSiteKey, c.Captcha.RecaptchaSecretKey) &&
-		!hasAll(c.Captcha.RecaptchaSiteKey, c.Captcha.RecaptchaSecretKey) {
-		errs = append(errs, "RECAPTCHA_SITE_KEY and RECAPTCHA_SECRET_KEY must be set together")
-	}
-
-	if !isBlank(c.Redis.URL) {
-		if err := validateURL(c.Redis.URL, "redis", "rediss"); err != nil {
-			errs = append(errs, fmt.Sprintf("REDIS_URL %s", err.Error()))
-		}
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("config validation failed: %s", strings.Join(errs, ", "))
-	}
-
-	if isBlank(c.HTTP.FrontendOrigin) {
-		errs = append(errs, "FRONTEND_ORIGIN is required")
-	} else if err := validateOrigin(c.HTTP.FrontendOrigin); err != nil {
-		errs = append(errs, fmt.Sprintf("FRONTEND_ORIGIN %s", err.Error()))
-	}
-
 	if isBlank(c.OAuth.GoogleClientID) {
 		errs = append(errs, "GOOGLE_OAUTH_CLIENT_ID is required")
 	}
@@ -124,6 +109,29 @@ func (c Config) Validate() error {
 		errs = append(errs, "GOOGLE_OAUTH_REDIRECT_URL is required")
 	} else if err := validateURL(c.OAuth.GoogleRedirectURL, "http", "https"); err != nil {
 		errs = append(errs, fmt.Sprintf("GOOGLE_OAUTH_REDIRECT_URL %s", err.Error()))
+	}
+
+	if hasAny(c.Captcha.RecaptchaSiteKey, c.Captcha.RecaptchaSecretKey) &&
+		!hasAll(c.Captcha.RecaptchaSiteKey, c.Captcha.RecaptchaSecretKey) {
+		errs = append(errs, "RECAPTCHA_SITE_KEY and RECAPTCHA_SECRET_KEY must be set together")
+	}
+
+	if c.Captcha.FailedCodeAttemptsTTL <= 0 {
+		errs = append(errs, "CODE_LOGIN_ATTEMPTS_TTL must be greater than 0")
+	}
+
+	if c.Captcha.CodeCaptchaThreshold <= 0 {
+		errs = append(errs, "CODE_LOGIN_CAPTCHA_THRESHOLD must be greater than 0")
+	}
+
+	if !isBlank(c.Redis.URL) {
+		if err := validateURL(c.Redis.URL, "redis", "rediss"); err != nil {
+			errs = append(errs, fmt.Sprintf("REDIS_URL %s", err.Error()))
+		}
+	}
+
+	if (c.Captcha.FailedCodeAttemptsTTL > 0 || c.Captcha.CodeCaptchaThreshold > 0) && isBlank(c.Redis.URL) {
+		errs = append(errs, "REDIS_URL is required when code login attempts protection is enabled")
 	}
 
 	if isBlank(c.JWT.Secret) {
@@ -167,6 +175,10 @@ func (c Config) Validate() error {
 
 	if c.App.Env == "prod" && !c.Cookie.Secure {
 		errs = append(errs, "COOKIE_SECURE must be true in prod")
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("config validation failed: %s", strings.Join(errs, ", "))
 	}
 
 	return nil
