@@ -33,3 +33,8 @@ func New(redisConfig config.RedisConfig, captchaConfig config.CaptchaConfig) (*C
 		codeCaptchaThreshold:  captchaConfig.CodeCaptchaThreshold,
 	}, nil
 }
+
+func (c *Client) Close() error {
+	err := c.db.Close()
+	return err
+}

@@ -19,6 +19,7 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/platform/db"
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 	applog "github.com/Mozlook/fotobudka-backend/internal/platform/logger"
+	"github.com/Mozlook/fotobudka-backend/internal/platform/redis"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/profiles"
 	sessionsrep "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/users"
@@ -56,13 +57,18 @@ func Run() error {
 	sessionsRepo := sessionsrep.New(queries)
 
 	sessionAccess := sessionaccess.New(pool, sessionsRepo, []byte(cfg.JWT.Secret))
+	redisClient, err := redis.New(cfg.Redis, cfg.Captcha)
+	if err != nil {
+		return err
+	}
+	defer redisClient.Close()
 
 	manager := appauth.New(cfg)
 	provider := oauth.New(cfg)
 	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
 	meHandler := me.NewHandler(profilesRepo)
 	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, cfg.HTTP.FrontendOrigin)
-	clientHandler := client.NewHandler(sessionAccess)
+	clientHandler := client.NewHandler(sessionAccess, redisClient)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
