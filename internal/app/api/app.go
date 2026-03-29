@@ -68,7 +68,7 @@ func Run() error {
 	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
 	meHandler := me.NewHandler(profilesRepo)
 	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, cfg.HTTP.FrontendOrigin)
-	clientHandler := client.NewHandler(sessionAccess, redisClient)
+	clientHandler := client.NewHandler(sessionAccess, redisClient, cfg.JWT.Secret)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,

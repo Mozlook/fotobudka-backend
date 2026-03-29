@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Mozlook/fotobudka-backend/internal/platform/captcha"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionaccess"
 	"github.com/google/uuid"
 )
@@ -75,17 +76,18 @@ func (h *Handler) GetSessionByCode(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 
-	err := dec.Decode(&requestBody)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+	if err := dec.Decode(&requestBody); err != nil {
+		writeAPIError(w, http.StatusBadRequest, "invalid_request", "request body is invalid")
 		return
 	}
 
 	code := strings.TrimSpace(requestBody.Code)
 	if code == "" {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		writeAPIError(w, http.StatusBadRequest, "invalid_request", "code is required")
 		return
 	}
+
+	captchaToken := strings.TrimSpace(requestBody.CaptchaToken)
 
 	ip := r.RemoteAddr
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
@@ -94,53 +96,50 @@ func (h *Handler) GetSessionByCode(w http.ResponseWriter, r *http.Request) {
 
 	captchaRequired, err := h.redis.RequiresCodeCaptcha(r.Context(), ip)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		writeAPIError(w, http.StatusInternalServerError, "internal_error", "internal error")
 		return
 	}
 
 	if captchaRequired {
-		payload, err := json.Marshal(struct {
-			ErrorCode string `json:"error_code"`
-			Message   string `json:"message"`
-		}{
-			ErrorCode: "captcha_required",
-			Message:   "captcha is required",
-		})
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		if captchaToken == "" {
+			writeAPIError(w, http.StatusBadRequest, "captcha_required", "captcha is required")
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write(payload)
-		return
+		ok, err := captcha.Verify(r.Context(), h.recaptchaSecretKey, captchaToken, ip)
+		if err != nil {
+			writeAPIError(w, http.StatusInternalServerError, "captcha_verification_failed", "captcha verification failed")
+			return
+		}
+
+		if !ok {
+			writeAPIError(w, http.StatusBadRequest, "invalid_captcha", "captcha token is invalid")
+			return
+		}
 	}
 
 	clientSession, err := h.sessionAccess.GetClientSessionByCode(r.Context(), code)
 	if err != nil {
 		if errors.Is(err, sessionaccess.ErrSessionAccessNotFound) {
-			_, redisErr := h.redis.RegisterFailedCodeAttempt(r.Context(), ip)
-			if redisErr != nil {
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			if _, redisErr := h.redis.RegisterFailedCodeAttempt(r.Context(), ip); redisErr != nil {
+				writeAPIError(w, http.StatusInternalServerError, "internal_error", "internal error")
 				return
 			}
 
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			writeAPIError(w, http.StatusNotFound, "session_access_not_found", "session access was not found")
 			return
 		}
 
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		writeAPIError(w, http.StatusInternalServerError, "internal_error", "internal error")
 		return
 	}
 
-	err = h.redis.ClearFailedCodeAttempts(r.Context(), ip)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	if err := h.redis.ClearFailedCodeAttempts(r.Context(), ip); err != nil {
+		writeAPIError(w, http.StatusInternalServerError, "internal_error", "internal error")
 		return
 	}
 
-	payload, err := json.Marshal(ClientSessionResponse{
+	writeJSON(w, http.StatusOK, ClientSessionResponse{
 		ID:              clientSession.ID,
 		Status:          clientSession.Status,
 		BasePriceCents:  clientSession.BasePriceCents,
@@ -151,12 +150,4 @@ func (h *Handler) GetSessionByCode(w http.ResponseWriter, r *http.Request) {
 		PaymentMode:     clientSession.PaymentMode,
 		Title:           clientSession.Title,
 	})
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(payload)
 }

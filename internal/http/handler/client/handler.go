@@ -7,14 +7,16 @@ import (
 
 // Handler serves /api/client endpoints.
 type Handler struct {
-	sessionAccess *sessionaccess.Service
-	redis         *redis.Client
+	sessionAccess      *sessionaccess.Service
+	redis              *redis.Client
+	recaptchaSecretKey string
 }
 
 // NewHandler creates a client handler
-func NewHandler(sessionAccess *sessionaccess.Service, redis *redis.Client) *Handler {
+func NewHandler(sessionAccess *sessionaccess.Service, redis *redis.Client, recaptchaSecretKey string) *Handler {
 	return &Handler{
-		sessionAccess: sessionAccess,
-		redis:         redis,
+		sessionAccess:      sessionAccess,
+		redis:              redis,
+		recaptchaSecretKey: recaptchaSecretKey,
 	}
 }
