@@ -56,7 +56,7 @@ func Run() error {
 	profilesRepo := profiles.New(queries)
 	sessionsRepo := sessionsrep.New(queries)
 
-	sessionAccess := sessionaccess.New(pool, sessionsRepo, []byte(cfg.JWT.Secret))
+	sessionAccess := sessionaccess.New(pool, sessionsRepo, []byte(cfg.Captcha.RecaptchaSecretKey))
 	redisClient, err := redis.New(cfg.Redis, cfg.Captcha)
 	if err != nil {
 		return err
