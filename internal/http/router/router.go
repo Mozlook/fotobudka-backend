@@ -20,6 +20,7 @@ func New(
 	sessionsHandler *sessions.Handler,
 	clientHandler *client.Handler,
 	manager *appauth.Manager,
+	frontendOrigin string,
 ) http.Handler {
 	mux := http.NewServeMux()
 
@@ -31,6 +32,7 @@ func New(
 	registerClientRouter(mux, clientHandler)
 
 	var h http.Handler = mux
+	h = middleware.CORS(frontendOrigin, h)
 	h = middleware.Recover(log, h)
 	h = middleware.AccessLog(log, h)
 	h = middleware.RequestID(h)
