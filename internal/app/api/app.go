@@ -56,7 +56,7 @@ func Run() error {
 	profilesRepo := profiles.New(queries)
 	sessionsRepo := sessionsrep.New(queries)
 
-	sessionAccess := sessionaccess.New(pool, sessionsRepo, []byte(cfg.Captcha.RecaptchaSecretKey))
+	sessionAccess := sessionaccess.New(pool, sessionsRepo, []byte(cfg.JWT.Secret))
 	redisClient, err := redis.New(cfg.Redis, cfg.Captcha)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func Run() error {
 	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
 	meHandler := me.NewHandler(profilesRepo)
 	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, cfg.HTTP.FrontendOrigin)
-	clientHandler := client.NewHandler(sessionAccess, redisClient, cfg.JWT.Secret)
+	clientHandler := client.NewHandler(sessionAccess, redisClient, cfg.Captcha.RecaptchaSecretKey)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
