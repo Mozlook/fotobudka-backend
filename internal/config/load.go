@@ -15,6 +15,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	s3UseSSL, err := getEnvBool("S3_USE_SSL", false)
+	if err != nil {
+		return Config{}, nil
+	}
+
 	jwtTTLHours, err := getEnvInt("JWT_TTL_HOURS", 720)
 	if err != nil {
 		return Config{}, err
@@ -55,6 +60,7 @@ func Load() (Config, error) {
 			SecretAccessKey: getEnv("S3_SECRET_ACCESS_KEY", ""),
 			Region:          getEnv("S3_REGION", "auto"),
 			UsePathStyle:    s3UsePathStyle,
+			UseSSL:          s3UseSSL,
 		},
 		SMTP: SMTPConfig{
 			Host:     getEnv("SMTP_HOST", ""),

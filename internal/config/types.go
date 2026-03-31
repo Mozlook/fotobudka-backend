@@ -63,6 +63,8 @@ type S3Config struct {
 
 	// UsePathStyle enables path-style bucket addressing instead of virtual-host style.
 	UsePathStyle bool
+
+	UseSSL bool
 }
 
 // SMTPConfig contains email delivery settings.
