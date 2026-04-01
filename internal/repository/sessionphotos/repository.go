@@ -1,4 +1,4 @@
-package sessionphotos
+package sessionphotosrepo
 
 import (
 	"context"

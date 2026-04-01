@@ -3,18 +3,20 @@ package sessionphotos
 import (
 	"context"
 	"fmt"
+	"hash/crc32"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
+	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	"github.com/google/uuid"
 )
 
 const presignedPutTTL = 30 * time.Minute
 
 type PhotoPutURL struct {
-	PhotoID   string
+	PhotoID   uuid.UUID
 	PutURL    *url.URL
 	ObjectKey string
 	Error     bool
@@ -28,15 +30,17 @@ type FileInput struct {
 
 type Service struct {
 	storage *storage.Client
+	repo    *sessionphotosrepo.Repository
 }
 
-func New(storageClient *storage.Client) *Service {
+func New(storageClient *storage.Client, repo *sessionphotosrepo.Repository) *Service {
 	return &Service{
 		storage: storageClient,
+		repo:    repo,
 	}
 }
 
-func (s *Service) PresignedUploadURLs(ctx context.Context, sessionID string, files []FileInput) ([]PhotoPutURL, error) {
+func (s *Service) presignedUploadURLs(ctx context.Context, sessionID string, files []FileInput) ([]PhotoPutURL, error) {
 	if strings.TrimSpace(sessionID) == "" {
 		return nil, fmt.Errorf("session_id cannot be empty")
 	}
@@ -55,8 +59,8 @@ func (s *Service) PresignedUploadURLs(ctx context.Context, sessionID string, fil
 			continue
 		}
 
-		photoID := uuid.NewString()
-		objectKey := fmt.Sprintf("sessions/%s/source/%s%s", sessionID, photoID, ext)
+		photoID := uuid.New()
+		objectKey := fmt.Sprintf("sessions/%s/source/%v%s", sessionID, photoID, ext)
 
 		putURL, err := s.storage.PresignedPutObject(ctx, objectKey, presignedPutTTL)
 		if err != nil {
@@ -74,6 +78,43 @@ func (s *Service) PresignedUploadURLs(ctx context.Context, sessionID string, fil
 	return output, nil
 }
 
+func (s *Service) PrepareSessionPhotoUploads(ctx context.Context, sessionID uuid.UUID, files []FileInput) ([]PhotoPutURL, error) {
+	if sessionID == uuid.Nil {
+		return nil, fmt.Errorf("session_id cannot be nil")
+	}
+	urls, err := s.presignedUploadURLs(ctx, sessionID.String(), files)
+	if err != nil {
+		return nil, fmt.Errorf("prepare presigned upload urls: %w", err)
+	}
+
+	insertRows := make([]sessionphotosrepo.InsertPhotoRow, 0, len(files))
+
+	now := time.Now().UTC()
+	for i, upload := range urls {
+		if upload.Error != false {
+			continue
+		}
+
+		row := sessionphotosrepo.InsertPhotoRow{
+			ID:               upload.PhotoID,
+			SessionID:        sessionID,
+			OriginalFilename: files[i].Filename,
+			MimeType:         files[i].MimeType,
+			SourceKey:        upload.ObjectKey,
+			Status:           "pending_upload",
+			WatermarkSeed:    watermarkSeedFromPhotoID(upload.PhotoID),
+			CreatedAt:        now,
+		}
+		insertRows = append(insertRows, row)
+	}
+
+	_, err = s.repo.InsertBatch(ctx, insertRows)
+	if err != nil {
+		return nil, fmt.Errorf("insert session_photos batch: %w", err)
+	}
+	return urls, nil
+}
+
 func sourceExtFromMIME(mimeType string) (string, bool) {
 	switch strings.ToLower(strings.TrimSpace(mimeType)) {
 	case "image/jpeg", "image/jpg":
@@ -85,4 +126,9 @@ func sourceExtFromMIME(mimeType string) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+func watermarkSeedFromPhotoID(id uuid.UUID) int32 {
+	sum := crc32.ChecksumIEEE(id[:])
+	return int32(sum & 0x7fffffff)
 }
