@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"path"
 	"strings"
 	"time"
 
 	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
 	"github.com/google/uuid"
 )
+
+const presignedPutTTL = 30 * time.Minute
 
 type PhotoPutURL struct {
 	PhotoID   string
@@ -26,38 +27,62 @@ type FileInput struct {
 }
 
 type Service struct {
-	minio *storage.Client
+	storage *storage.Client
 }
 
-func New(minio *storage.Client) *Service {
+func New(storageClient *storage.Client) *Service {
 	return &Service{
-		minio: minio,
+		storage: storageClient,
 	}
 }
 
 func (s *Service) PresignedUploadURLs(ctx context.Context, sessionID string, files []FileInput) ([]PhotoPutURL, error) {
-	outputList := make([]PhotoPutURL, 0, len(files))
-	expires := time.Duration(time.Minute * 60)
+	if strings.TrimSpace(sessionID) == "" {
+		return nil, fmt.Errorf("session_id cannot be empty")
+	}
 
-	for _, file := range files {
-		photoID := uuid.NewString()
+	output := make([]PhotoPutURL, len(files))
 
-		ext := strings.ToLower(path.Ext(file.Filename))
-		if ext == "" {
-			outputList = append(outputList, PhotoPutURL{PhotoID: photoID, PutURL: nil, ObjectKey: "", Error: true})
+	for i, file := range files {
+		if strings.TrimSpace(file.Filename) == "" || file.SizeBytes <= 0 {
+			output[i] = PhotoPutURL{Error: true}
 			continue
 		}
 
-		objectKey := fmt.Sprintf("sessions/%s/source/%s%s", sessionID, photoID, ext)
-
-		putURL, err := s.minio.PresignedPutObject(ctx, objectKey, expires)
-		if err != nil {
-			return nil, err
+		ext, ok := sourceExtFromMIME(file.MimeType)
+		if !ok {
+			output[i] = PhotoPutURL{Error: true}
+			continue
 		}
 
-		outputList = append(outputList, PhotoPutURL{PhotoID: photoID, PutURL: putURL, ObjectKey: objectKey, Error: false})
+		photoID := uuid.NewString()
+		objectKey := fmt.Sprintf("sessions/%s/source/%s%s", sessionID, photoID, ext)
 
+		putURL, err := s.storage.PresignedPutObject(ctx, objectKey, presignedPutTTL)
+		if err != nil {
+			return nil, fmt.Errorf("presign put object for %q: %w", file.Filename, err)
+		}
+
+		output[i] = PhotoPutURL{
+			PhotoID:   photoID,
+			PutURL:    putURL,
+			ObjectKey: objectKey,
+			Error:     false,
+		}
 	}
 
-	return outputList, nil
+	return output, nil
+}
+
+func sourceExtFromMIME(mimeType string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(mimeType)) {
+	case "image/jpeg", "image/jpg":
+		return ".jpg", true
+	case "image/png":
+		return ".png", true
+	case "image/webp":
+		return ".webp", true
+	default:
+		return "", false
+	}
 }
