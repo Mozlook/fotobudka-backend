@@ -23,9 +23,9 @@ type PhotoPutURL struct {
 }
 
 type FileInput struct {
-	Filename  string
-	MimeType  string
-	SizeBytes int64
+	Filename  string `json:"filename"`
+	MimeType  string `json:"mime_type"`
+	SizeBytes int64  `json:"size_bytes"`
 }
 
 type Service struct {
