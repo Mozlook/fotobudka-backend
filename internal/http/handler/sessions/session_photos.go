@@ -33,14 +33,19 @@ func (h *Handler) PhotosPresign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionIDString := r.URL.Query().Get("sessionId")
+	sessionIDString := r.PathValue("sessionId")
 	if sessionIDString == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-	sessionID := uuid.MustParse(sessionIDString)
 
-	err := guard.EnsureSessionOwner(r.Context(), h.sessions, sessionID, userID)
+	sessionID, err := uuid.Parse(sessionIDString)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	err = guard.EnsureSessionOwner(r.Context(), h.sessions, sessionID, userID)
 	if err != nil {
 		if errors.Is(err, guard.ErrSessionNotAccessible) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -48,11 +53,11 @@ func (h *Handler) PhotosPresign(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
-
 	}
 
-	var requestBody PhotosPresignRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
+	var requestBody PhotosPresignRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 
@@ -61,37 +66,36 @@ func (h *Handler) PhotosPresign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	files := requestBody.Files
+	if len(requestBody.Files) == 0 {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
 
-	urls, err := h.sessionPhotos.PrepareSessionPhotoUploads(r.Context(), sessionID, files)
+	uploads, err := h.sessionPhotos.PrepareSessionPhotoUploads(r.Context(), sessionID, requestBody.Files)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	response := make([]PhotosPresignResponse, 0, len(urls))
-
-	for _, upload := range urls {
-		if upload.Error == true {
-			continue
-		}
-
-		obj := PhotosPresignUploadResponse{
-			PhotoID:   upload.PhotoID.String(),
-			PutURL:    upload.PutURL.String(),
-			ObjectKey: upload.ObjectKey,
-		}
-
-		response = append(response, obj)
+	response := PhotosPresignResponse{
+		Uploads: make([]PhotosPresignUploadResponse, len(uploads)),
 	}
 
-	payload, err := json.Marshal(struct{ response })
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+	for i, upload := range uploads {
+		item := PhotosPresignUploadResponse{
+			Error: upload.Error,
+		}
+
+		if !upload.Error {
+			item.PhotoID = upload.PhotoID.String()
+			item.PutURL = upload.PutURL.String()
+			item.ObjectKey = upload.ObjectKey
+		}
+
+		response.Uploads[i] = item
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(payload)
+	_ = json.NewEncoder(w).Encode(response)
 }
