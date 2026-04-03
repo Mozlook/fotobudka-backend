@@ -101,6 +101,7 @@ func (s *Service) PrepareSessionPhotoUploads(ctx context.Context, sessionID uuid
 			OriginalFilename: files[i].Filename,
 			MimeType:         files[i].MimeType,
 			SourceKey:        upload.ObjectKey,
+			SourceSizeBytes:  files[i].SizeBytes,
 			Status:           "pending_upload",
 			WatermarkSeed:    watermarkSeedFromPhotoID(upload.PhotoID),
 			CreatedAt:        now,

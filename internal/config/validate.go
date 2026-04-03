@@ -48,7 +48,7 @@ func (c Config) Validate() error {
 
 	if isBlank(c.S3.Endpoint) {
 		errs = append(errs, "S3_ENDPOINT is required")
-	} else if err := validateURL(c.S3.Endpoint, "http", "https"); err != nil {
+	} else if err := validateS3Endpoint(c.S3.Endpoint); err != nil {
 		errs = append(errs, fmt.Sprintf("S3_ENDPOINT %s", err.Error()))
 	}
 
@@ -279,6 +279,37 @@ func validateCookieDomain(domain string) error {
 
 	if strings.ContainsAny(domain, " \t\r\n") {
 		return fmt.Errorf("must not contain whitespace")
+	}
+
+	return nil
+}
+
+func validateS3Endpoint(raw string) error {
+	raw = strings.TrimSpace(raw)
+
+	if raw == "" {
+		return fmt.Errorf("is required")
+	}
+
+	if strings.Contains(raw, "://") {
+		return fmt.Errorf("must not include a scheme; use host or host:port")
+	}
+
+	if strings.Contains(raw, "/") {
+		return fmt.Errorf("must not include a path")
+	}
+
+	if strings.Contains(raw, "?") || strings.Contains(raw, "#") {
+		return fmt.Errorf("must not include query or fragment")
+	}
+
+	parsed, err := url.Parse("//" + raw)
+	if err != nil {
+		return fmt.Errorf("is invalid: %w", err)
+	}
+
+	if parsed.Host == "" || parsed.Hostname() == "" {
+		return fmt.Errorf("must include a host")
 	}
 
 	return nil

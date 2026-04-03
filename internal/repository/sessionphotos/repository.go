@@ -16,6 +16,7 @@ type InsertPhotoRow struct {
 	OriginalFilename string
 	MimeType         string
 	SourceKey        string
+	SourceSizeBytes  int64
 	Status           string
 	WatermarkSeed    int32
 	CreatedAt        time.Time
@@ -43,6 +44,7 @@ func (r *Repository) InsertBatch(ctx context.Context, rows []InsertPhotoRow) (in
 			"original_filename",
 			"mime_type",
 			"source_key",
+			"source_size_bytes",
 			"status",
 			"watermark_seed",
 			"created_at",
@@ -56,6 +58,7 @@ func (r *Repository) InsertBatch(ctx context.Context, rows []InsertPhotoRow) (in
 				row.OriginalFilename,
 				row.MimeType,
 				row.SourceKey,
+				row.SourceSizeBytes,
 				row.Status,
 				row.WatermarkSeed,
 				row.CreatedAt,

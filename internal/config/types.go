@@ -49,6 +49,8 @@ type S3Config struct {
 	// Endpoint is the S3-compatible API endpoint.
 	Endpoint string
 
+	EndpointPublic string
+
 	// Bucket is the bucket name used to store application files.
 	Bucket string
 

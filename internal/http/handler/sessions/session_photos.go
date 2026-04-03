@@ -3,6 +3,7 @@ package sessions
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/Mozlook/fotobudka-backend/internal/guard"
@@ -73,6 +74,7 @@ func (h *Handler) PhotosPresign(w http.ResponseWriter, r *http.Request) {
 
 	uploads, err := h.sessionPhotos.PrepareSessionPhotoUploads(r.Context(), sessionID, requestBody.Files)
 	if err != nil {
+		fmt.Printf("photos presign error: session_id=%s user_id=%s err=%v\n", sessionID, userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

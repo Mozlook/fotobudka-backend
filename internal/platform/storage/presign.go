@@ -16,9 +16,9 @@ func (c *Client) PresignedPutObject(ctx context.Context, objectKey string, expir
 		return nil, fmt.Errorf("duration must be longer than 1 second")
 	}
 
-	putURL, err := c.minio.PresignedPutObject(ctx, c.bucketName, objectKey, expires)
+	putURL, err := c.publicMinio.PresignedPutObject(ctx, c.bucketName, objectKey, expires)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("presign put object: %w", err)
 	}
 
 	return putURL, nil

@@ -55,6 +55,7 @@ func Load() (Config, error) {
 		},
 		S3: S3Config{
 			Endpoint:        getEnv("S3_ENDPOINT", ""),
+			EndpointPublic:  getEnv("S3_ENDPOINT_PUBLIC", ""),
 			Bucket:          getEnv("S3_BUCKET", ""),
 			AccessKeyID:     getEnv("S3_ACCESS_KEY_ID", ""),
 			SecretAccessKey: getEnv("S3_SECRET_ACCESS_KEY", ""),
