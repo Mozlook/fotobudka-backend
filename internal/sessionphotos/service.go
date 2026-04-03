@@ -2,6 +2,7 @@ package sessionphotos
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hash/crc32"
 	"net/url"
@@ -32,6 +33,12 @@ type Service struct {
 	storage *storage.Client
 	repo    *sessionphotosrepo.Repository
 }
+
+var (
+	ErrInvalidPhotoStatus     = errors.New("invalid photo status")
+	ErrSessionPhotoNotFound   = errors.New("session photo not found")
+	ErrUploadedObjectNotFound = errors.New("photo object not found")
+)
 
 func New(storageClient *storage.Client, repo *sessionphotosrepo.Repository) *Service {
 	return &Service{
@@ -114,6 +121,41 @@ func (s *Service) PrepareSessionPhotoUploads(ctx context.Context, sessionID uuid
 		return nil, fmt.Errorf("insert session_photos batch: %w", err)
 	}
 	return urls, nil
+}
+
+func (s *Service) CompleteUpload(ctx context.Context, sessionID, photoID uuid.UUID) error {
+	photo, err := s.repo.GetSessionPhotoByIDAndSessionID(ctx, photoID, sessionID)
+	if err != nil {
+		if errors.Is(err, sessionphotosrepo.ErrSessionPhotoNotFound) {
+			return ErrSessionPhotoNotFound
+		}
+		return fmt.Errorf("get session photo: %w", err)
+	}
+
+	if photo.Status == "uploaded" {
+		return nil
+	}
+
+	if photo.Status != "pending_upload" {
+		return ErrInvalidPhotoStatus
+	}
+
+	object, err := s.storage.StatObject(ctx, photo.SourceKey)
+	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotFound) {
+			return ErrUploadedObjectNotFound
+		}
+		return fmt.Errorf("stat uploaded object: %w", err)
+	}
+
+	if err := s.repo.MarkSessionPhotoUploaded(ctx, photoID, sessionID, object.Size); err != nil {
+		if errors.Is(err, sessionphotosrepo.ErrSessionPhotoNotFound) {
+			return ErrSessionPhotoNotFound
+		}
+		return fmt.Errorf("mark session photo uploaded: %w", err)
+	}
+
+	return nil
 }
 
 func sourceExtFromMIME(mimeType string) (string, bool) {
