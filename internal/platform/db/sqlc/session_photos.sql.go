@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const getSessionPhotoByIIDAndSessionID = `-- name: GetSessionPhotoByIIDAndSessionID :one
+const getSessionPhotoByIDAndSessionID = `-- name: GetSessionPhotoByIDAndSessionID :one
 SELECT
     id,
     session_id,
@@ -23,12 +23,12 @@ WHERE id = $1
 AND session_id = $2
 `
 
-type GetSessionPhotoByIIDAndSessionIDParams struct {
+type GetSessionPhotoByIDAndSessionIDParams struct {
 	ID        uuid.UUID `db:"id" json:"id"`
 	SessionID uuid.UUID `db:"session_id" json:"session_id"`
 }
 
-type GetSessionPhotoByIIDAndSessionIDRow struct {
+type GetSessionPhotoByIDAndSessionIDRow struct {
 	ID              uuid.UUID `db:"id" json:"id"`
 	SessionID       uuid.UUID `db:"session_id" json:"session_id"`
 	SourceKey       string    `db:"source_key" json:"source_key"`
@@ -36,9 +36,9 @@ type GetSessionPhotoByIIDAndSessionIDRow struct {
 	SourceSizeBytes int64     `db:"source_size_bytes" json:"source_size_bytes"`
 }
 
-func (q *Queries) GetSessionPhotoByIIDAndSessionID(ctx context.Context, arg GetSessionPhotoByIIDAndSessionIDParams) (GetSessionPhotoByIIDAndSessionIDRow, error) {
-	row := q.db.QueryRow(ctx, getSessionPhotoByIIDAndSessionID, arg.ID, arg.SessionID)
-	var i GetSessionPhotoByIIDAndSessionIDRow
+func (q *Queries) GetSessionPhotoByIDAndSessionID(ctx context.Context, arg GetSessionPhotoByIDAndSessionIDParams) (GetSessionPhotoByIDAndSessionIDRow, error) {
+	row := q.db.QueryRow(ctx, getSessionPhotoByIDAndSessionID, arg.ID, arg.SessionID)
+	var i GetSessionPhotoByIDAndSessionIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.SessionID,

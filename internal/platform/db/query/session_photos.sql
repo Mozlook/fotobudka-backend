@@ -1,4 +1,4 @@
--- name: GetSessionPhotoByIIDAndSessionID :one
+-- name: GetSessionPhotoByIDAndSessionID :one
 SELECT
     id,
     session_id,
