@@ -23,7 +23,7 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/profiles"
 	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
-	sessionsrep "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
+	sessionsrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/users"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionaccess"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionphotos"
@@ -57,8 +57,8 @@ func Run() error {
 	queries := dbgen.New(pool)
 	usersRepo := users.New(queries)
 	profilesRepo := profiles.New(queries)
-	sessionsRepo := sessionsrep.New(queries)
-	sessionPhotosRepo := sessionphotosrepo.New(pool)
+	sessionsRepo := sessionsrepo.New(queries)
+	sessionPhotosRepo := sessionphotosrepo.New(queries, pool)
 
 	storageClient, err := storage.New(cfg.S3)
 	if err != nil {

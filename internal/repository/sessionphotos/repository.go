@@ -39,8 +39,11 @@ type SessionPhoto struct {
 
 var ErrSessionPhotoNotFound = errors.New("session photo not found")
 
-func New(pool *pgxpool.Pool) *Repository {
-	return &Repository{pool: pool}
+func New(sessionPhotosRepo *dbgen.Queries, pool *pgxpool.Pool) *Repository {
+	return &Repository{
+		sessionPhotosRepo: sessionPhotosRepo,
+		pool:              pool,
+	}
 }
 
 func (r *Repository) InsertBatch(ctx context.Context, rows []InsertPhotoRow) (int64, error) {
