@@ -21,6 +21,7 @@ import (
 	applog "github.com/Mozlook/fotobudka-backend/internal/platform/logger"
 	"github.com/Mozlook/fotobudka-backend/internal/platform/redis"
 	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
+	"github.com/Mozlook/fotobudka-backend/internal/repository/jobs"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/profiles"
 	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	sessionsrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
@@ -59,6 +60,7 @@ func Run() error {
 	profilesRepo := profiles.New(queries)
 	sessionsRepo := sessionsrepo.New(queries)
 	sessionPhotosRepo := sessionphotosrepo.New(queries, pool)
+	jobsRepo := jobs.New(queries)
 
 	storageClient, err := storage.New(cfg.S3)
 	if err != nil {
@@ -66,7 +68,7 @@ func Run() error {
 	}
 
 	sessionAccess := sessionaccess.New(pool, sessionsRepo, []byte(cfg.JWT.Secret))
-	sessionPhotos := sessionphotos.New(storageClient, sessionPhotosRepo)
+	sessionPhotos := sessionphotos.New(storageClient, sessionPhotosRepo, jobsRepo, pool)
 	redisClient, err := redis.New(cfg.Redis, cfg.Captcha)
 	if err != nil {
 		return err

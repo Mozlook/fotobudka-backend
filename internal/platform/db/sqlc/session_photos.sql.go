@@ -17,7 +17,8 @@ SELECT
     session_id,
     source_key,
     status,
-    source_size_bytes
+    source_size_bytes,
+    watermark_seed
 FROM session_photos
 WHERE id = $1
 AND session_id = $2
@@ -34,6 +35,7 @@ type GetSessionPhotoByIDAndSessionIDRow struct {
 	SourceKey       string    `db:"source_key" json:"source_key"`
 	Status          string    `db:"status" json:"status"`
 	SourceSizeBytes int64     `db:"source_size_bytes" json:"source_size_bytes"`
+	WatermarkSeed   int32     `db:"watermark_seed" json:"watermark_seed"`
 }
 
 func (q *Queries) GetSessionPhotoByIDAndSessionID(ctx context.Context, arg GetSessionPhotoByIDAndSessionIDParams) (GetSessionPhotoByIDAndSessionIDRow, error) {
@@ -45,6 +47,7 @@ func (q *Queries) GetSessionPhotoByIDAndSessionID(ctx context.Context, arg GetSe
 		&i.SourceKey,
 		&i.Status,
 		&i.SourceSizeBytes,
+		&i.WatermarkSeed,
 	)
 	return i, err
 }

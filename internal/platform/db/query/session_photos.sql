@@ -4,7 +4,8 @@ SELECT
     session_id,
     source_key,
     status,
-    source_size_bytes
+    source_size_bytes,
+    watermark_seed
 FROM session_photos
 WHERE id = $1
 AND session_id = $2;

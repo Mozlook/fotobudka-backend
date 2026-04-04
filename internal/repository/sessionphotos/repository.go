@@ -35,6 +35,7 @@ type SessionPhoto struct {
 	SourceKey       string
 	Status          string
 	SourceSizeBytes int64
+	WatermarkSeed   int32
 }
 
 var ErrSessionPhotoNotFound = errors.New("session photo not found")
@@ -106,6 +107,7 @@ func (r *Repository) GetSessionPhotoByIDAndSessionID(ctx context.Context, photoI
 		SourceKey:       photo.SourceKey,
 		Status:          photo.Status,
 		SourceSizeBytes: photo.SourceSizeBytes,
+		WatermarkSeed:   photo.WatermarkSeed,
 	}, nil
 }
 
