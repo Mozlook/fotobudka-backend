@@ -3,10 +3,26 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"time"
 
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 	"github.com/google/uuid"
 )
+
+type Job struct {
+	ID          uuid.UUID
+	Type        string
+	Status      string
+	Payload     []byte
+	Attempts    int32
+	MaxAttempts int32
+	NextRunAt   time.Time
+	LockedAt    *time.Time
+	LockedBy    *string
+	LastError   *string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
 
 // Repository provides access to jobs table jobs table jobs table jobs table jobs table jobs table jobs table jobs table operations.
 type Repository struct {
@@ -37,4 +53,36 @@ func (r *Repository) EnqueueJob(ctx context.Context, in EnqueueJobInput) error {
 	}
 
 	return nil
+}
+
+func (r *Repository) ClaimDueJobs(ctx context.Context, limit int32, lockedBy string) ([]Job, error) {
+	rows, err := r.q.ClaimDueJobs(ctx, dbgen.ClaimDueJobsParams{
+		LockedBy:   &lockedBy,
+		LimitCount: limit,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("claim due jobs: %w", err)
+	}
+
+	jobs := make([]Job, 0, len(rows))
+
+	for _, row := range rows {
+		job := Job{
+			ID:          row.ID,
+			Type:        row.Type,
+			Status:      row.Status,
+			Payload:     row.Payload,
+			Attempts:    row.Attempts,
+			MaxAttempts: row.MaxAttempts,
+			NextRunAt:   row.NextRunAt,
+			LockedAt:    row.LockedAt,
+			LockedBy:    row.LockedBy,
+			LastError:   row.LastError,
+			CreatedAt:   row.CreatedAt,
+			UpdatedAt:   row.UpdatedAt,
+		}
+		jobs = append(jobs, job)
+
+	}
+	return jobs, nil
 }
