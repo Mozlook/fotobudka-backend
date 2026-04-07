@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -113,4 +114,76 @@ func (q *Queries) EnqueueJob(ctx context.Context, arg EnqueueJobParams) error {
 		arg.MaxAttempts,
 	)
 	return err
+}
+
+const markJobFailed = `-- name: MarkJobFailed :execrows
+UPDATE jobs
+SET
+    status = 'failed',
+    locked_at = NULL,
+    locked_by = NULL,
+    last_error = $1,
+    updated_at = now()
+WHERE id = $2
+  AND status = 'running'
+`
+
+type MarkJobFailedParams struct {
+	LastError *string   `db:"last_error" json:"last_error"`
+	ID        uuid.UUID `db:"id" json:"id"`
+}
+
+func (q *Queries) MarkJobFailed(ctx context.Context, arg MarkJobFailedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markJobFailed, arg.LastError, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const markJobRetry = `-- name: MarkJobRetry :execrows
+UPDATE jobs
+SET
+    status = 'pending',
+    locked_at = NULL,
+    locked_by = NULL,
+    last_error = $1,
+    next_run_at = $2,
+    updated_at = now()
+WHERE id = $3
+  AND status = 'running'
+`
+
+type MarkJobRetryParams struct {
+	LastError *string   `db:"last_error" json:"last_error"`
+	NextRunAt time.Time `db:"next_run_at" json:"next_run_at"`
+	ID        uuid.UUID `db:"id" json:"id"`
+}
+
+func (q *Queries) MarkJobRetry(ctx context.Context, arg MarkJobRetryParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markJobRetry, arg.LastError, arg.NextRunAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const markJobSucceeded = `-- name: MarkJobSucceeded :execrows
+UPDATE jobs
+SET
+    status = 'succeeded',
+    locked_at = NULL,
+    locked_by = NULL,
+    last_error = NULL,
+    updated_at = now()
+WHERE id = $1
+  AND status = 'running'
+`
+
+func (q *Queries) MarkJobSucceeded(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markJobSucceeded, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
