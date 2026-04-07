@@ -11,6 +11,77 @@ import (
 	"github.com/google/uuid"
 )
 
+const claimDueJobs = `-- name: ClaimDueJobs :many
+WITH picked AS (
+    SELECT id
+    FROM jobs
+    WHERE status = 'pending'
+      AND next_run_at <= now()
+    ORDER BY next_run_at, created_at
+    LIMIT $2
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE jobs
+SET
+    status = 'running',
+    locked_at = now(),
+    locked_by = $1,
+    attempts = attempts + 1,
+    updated_at = now()
+WHERE id IN (SELECT id FROM picked)
+RETURNING
+    id,
+    type,
+    status,
+    payload,
+    attempts,
+    max_attempts,
+    next_run_at,
+    locked_at,
+    locked_by,
+    last_error,
+    created_at,
+    updated_at
+`
+
+type ClaimDueJobsParams struct {
+	LockedBy   *string `db:"locked_by" json:"locked_by"`
+	LimitCount int32   `db:"limit_count" json:"limit_count"`
+}
+
+func (q *Queries) ClaimDueJobs(ctx context.Context, arg ClaimDueJobsParams) ([]Job, error) {
+	rows, err := q.db.Query(ctx, claimDueJobs, arg.LockedBy, arg.LimitCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Job{}
+	for rows.Next() {
+		var i Job
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.Status,
+			&i.Payload,
+			&i.Attempts,
+			&i.MaxAttempts,
+			&i.NextRunAt,
+			&i.LockedAt,
+			&i.LockedBy,
+			&i.LastError,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const enqueueJob = `-- name: EnqueueJob :exec
 INSERT INTO jobs (
     id,
