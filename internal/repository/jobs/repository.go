@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -40,6 +41,8 @@ type EnqueueJobInput struct {
 	Payload     []byte
 	MaxAttempts int32
 }
+
+var ErrJobNotFoundOrNotRunning = errors.New("job not found or not running")
 
 func (r *Repository) EnqueueJob(ctx context.Context, in EnqueueJobInput) error {
 	err := r.q.EnqueueJob(ctx, dbgen.EnqueueJobParams{
@@ -85,4 +88,59 @@ func (r *Repository) ClaimDueJobs(ctx context.Context, limit int32, lockedBy str
 
 	}
 	return jobs, nil
+}
+
+func (r *Repository) MarkJobSucceeded(ctx context.Context, jobID uuid.UUID) error {
+	rows, err := r.q.MarkJobSucceeded(ctx, jobID)
+	if err != nil {
+		return fmt.Errorf("mark job succeeded: %w", err)
+	}
+
+	if rows == 0 {
+		return ErrJobNotFoundOrNotRunning
+	}
+	if rows != 1 {
+		return fmt.Errorf("mark job succeeded: unexpected affected rows: %d", rows)
+	}
+
+	return nil
+}
+
+func (r *Repository) MarkJobRetry(ctx context.Context, jobID uuid.UUID, lastError string, nextRunAt time.Time) error {
+	rows, err := r.q.MarkJobRetry(ctx, dbgen.MarkJobRetryParams{
+		ID:        jobID,
+		LastError: &lastError,
+		NextRunAt: nextRunAt,
+	})
+	if err != nil {
+		return fmt.Errorf("mark job retry: %w", err)
+	}
+
+	if rows == 0 {
+		return ErrJobNotFoundOrNotRunning
+	}
+	if rows != 1 {
+		return fmt.Errorf("mark job retry: unexpected affected rows: %d", rows)
+	}
+
+	return nil
+}
+
+func (r *Repository) MarkJobFailed(ctx context.Context, jobID uuid.UUID, lastError string) error {
+	rows, err := r.q.MarkJobFailed(ctx, dbgen.MarkJobFailedParams{
+		ID:        jobID,
+		LastError: &lastError,
+	})
+	if err != nil {
+		return fmt.Errorf("mark job failed: %w", err)
+	}
+
+	if rows == 0 {
+		return ErrJobNotFoundOrNotRunning
+	}
+	if rows != 1 {
+		return fmt.Errorf("mark job failed: unexpected affected rows: %d", rows)
+	}
+
+	return nil
 }
