@@ -130,3 +130,43 @@ func (r *Repository) MarkSessionPhotoUploaded(ctx context.Context, photoID, sess
 
 	return nil
 }
+
+func (r *Repository) MarkPhotoProcessing(ctx context.Context, photoID, sessionID uuid.UUID) error {
+	count, err := r.sessionPhotosRepo.MarkPhotoProcessing(ctx, dbgen.MarkPhotoProcessingParams{
+		ID:        photoID,
+		SessionID: sessionID,
+	})
+	if err != nil {
+		return fmt.Errorf("mark session photo processing: %w", err)
+	}
+
+	if count == 0 {
+		return ErrSessionPhotoNotFound
+	}
+	if count != 1 {
+		return fmt.Errorf("mark session photo processing: unexpected affected rows: %d", count)
+	}
+
+	return nil
+}
+
+func (r *Repository) MarkPhotoReady(ctx context.Context, photoID, sessionID uuid.UUID, thumbKey, proofKey string) error {
+	count, err := r.sessionPhotosRepo.MarkPhotoReady(ctx, dbgen.MarkPhotoReadyParams{
+		ID:        photoID,
+		SessionID: sessionID,
+		ThumbKey:  &thumbKey,
+		ProofKey:  &proofKey,
+	})
+	if err != nil {
+		return fmt.Errorf("mark session photo ready: %w", err)
+	}
+
+	if count == 0 {
+		return ErrSessionPhotoNotFound
+	}
+	if count != 1 {
+		return fmt.Errorf("mark session photo ready: unexpected affected rows: %d", count)
+	}
+
+	return nil
+}
