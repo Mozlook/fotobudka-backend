@@ -170,3 +170,22 @@ func (r *Repository) MarkPhotoReady(ctx context.Context, photoID, sessionID uuid
 
 	return nil
 }
+
+func (r *Repository) MarkPhotoFailed(ctx context.Context, photoID, sessionID uuid.UUID) error {
+	count, err := r.sessionPhotosRepo.MarkPhotoFailed(ctx, dbgen.MarkPhotoFailedParams{
+		ID:        photoID,
+		SessionID: sessionID,
+	})
+	if err != nil {
+		return fmt.Errorf("mark session photo failed: %w", err)
+	}
+
+	if count == 0 {
+		return ErrSessionPhotoNotFound
+	}
+	if count != 1 {
+		return fmt.Errorf("mark session photo failed: unexpected affected rows: %d", count)
+	}
+
+	return nil
+}
