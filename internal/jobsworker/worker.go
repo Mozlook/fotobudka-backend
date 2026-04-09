@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/jobs"
 	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	"github.com/google/uuid"
@@ -15,10 +16,11 @@ type Worker struct {
 	workerID          string
 	jobsRepo          *jobs.Repository
 	sessionphotosRepo *sessionphotosrepo.Repository
+	storage           *storage.Client
 	limit             int32
 }
 
-func New(jobsRepo *jobs.Repository, sessionphotosRepo *sessionphotosrepo.Repository, limit int32) *Worker {
+func New(jobsRepo *jobs.Repository, sessionphotosRepo *sessionphotosrepo.Repository, storage *storage.Client, limit int32) *Worker {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -26,6 +28,7 @@ func New(jobsRepo *jobs.Repository, sessionphotosRepo *sessionphotosrepo.Reposit
 		workerID:          uuid.NewString(),
 		jobsRepo:          jobsRepo,
 		sessionphotosRepo: sessionphotosRepo,
+		storage:           storage,
 		limit:             limit,
 	}
 }
