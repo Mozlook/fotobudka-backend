@@ -35,3 +35,11 @@ proof_key = sqlc.arg(proof_key)
 WHERE id = sqlc.arg(id) 
 AND session_id = sqlc.arg(session_id)
 AND status = 'processing';
+
+-- name: MarkPhotoFailed :execrows
+UPDATE session_photos
+SET
+status ='failed'
+WHERE id = sqlc.arg(id) 
+AND session_id = sqlc.arg(session_id)
+AND status IN ('uploaded', 'processing');

@@ -52,6 +52,28 @@ func (q *Queries) GetSessionPhotoByIDAndSessionID(ctx context.Context, arg GetSe
 	return i, err
 }
 
+const markPhotoFailed = `-- name: MarkPhotoFailed :execrows
+UPDATE session_photos
+SET
+status ='failed'
+WHERE id = $1 
+AND session_id = $2
+AND status IN ('uploaded', 'processing')
+`
+
+type MarkPhotoFailedParams struct {
+	ID        uuid.UUID `db:"id" json:"id"`
+	SessionID uuid.UUID `db:"session_id" json:"session_id"`
+}
+
+func (q *Queries) MarkPhotoFailed(ctx context.Context, arg MarkPhotoFailedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markPhotoFailed, arg.ID, arg.SessionID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const markPhotoProcessing = `-- name: MarkPhotoProcessing :execrows
 UPDATE session_photos
 SET
