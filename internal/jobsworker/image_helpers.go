@@ -23,7 +23,7 @@ func decodeImage(r io.Reader) (image.Image, string, error) {
 	return img, formatName, nil
 }
 
-func resieToFit(src image.Image, maxW, maxH uint) image.Image {
+func resizeToFit(src image.Image, maxW, maxH uint) image.Image {
 	return resize.Thumbnail(maxW, maxH, src, resize.Lanczos3)
 }
 

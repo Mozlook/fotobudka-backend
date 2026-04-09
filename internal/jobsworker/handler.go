@@ -2,7 +2,6 @@ package jobsworker
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -15,11 +14,6 @@ var ErrRetryableJob = errors.New("retryable job error")
 func (w *Worker) handleJob(ctx context.Context, job jobs.Job) error {
 	switch job.Type {
 	case sessionphotos.JobTypeGenerateSessionPhotoVariants:
-		var payload sessionphotos.GenerateSessionPhotoVariantsPayload
-		err := json.Unmarshal(job.Payload, &payload)
-		if err != nil {
-			return fmt.Errorf("unmarshal generate_session_photo_variants payload: %w", err)
-		}
 
 		return fmt.Errorf("generate_session_photo_variants not implemented yet")
 
