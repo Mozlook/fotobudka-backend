@@ -18,3 +18,20 @@ SET
 WHERE id = $2
 AND session_id = $3;
 
+-- name: MarkPhotoProcessing :execrows
+UPDATE session_photos
+SET
+    status = 'processing'
+WHERE id = sqlc.arg(id)
+  AND session_id = sqlc.arg(session_id)
+  AND status IN ('uploaded', 'processing');
+
+-- name: MarkPhotoReady :execrows
+UPDATE session_photos
+SET
+status ='ready',
+thumb_key = sqlc.arg(thumb_key),
+proof_key = sqlc.arg(proof_key) 
+WHERE id = sqlc.arg(id) 
+AND session_id = sqlc.arg(session_id)
+AND status = 'processing';

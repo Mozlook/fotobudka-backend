@@ -52,6 +52,59 @@ func (q *Queries) GetSessionPhotoByIDAndSessionID(ctx context.Context, arg GetSe
 	return i, err
 }
 
+const markPhotoProcessing = `-- name: MarkPhotoProcessing :execrows
+UPDATE session_photos
+SET
+    status = 'processing'
+WHERE id = $1
+  AND session_id = $2
+  AND status IN ('uploaded', 'processing')
+`
+
+type MarkPhotoProcessingParams struct {
+	ID        uuid.UUID `db:"id" json:"id"`
+	SessionID uuid.UUID `db:"session_id" json:"session_id"`
+}
+
+func (q *Queries) MarkPhotoProcessing(ctx context.Context, arg MarkPhotoProcessingParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markPhotoProcessing, arg.ID, arg.SessionID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const markPhotoReady = `-- name: MarkPhotoReady :execrows
+UPDATE session_photos
+SET
+status ='ready',
+thumb_key = $1,
+proof_key = $2 
+WHERE id = $3 
+AND session_id = $4
+AND status = 'processing'
+`
+
+type MarkPhotoReadyParams struct {
+	ThumbKey  *string   `db:"thumb_key" json:"thumb_key"`
+	ProofKey  *string   `db:"proof_key" json:"proof_key"`
+	ID        uuid.UUID `db:"id" json:"id"`
+	SessionID uuid.UUID `db:"session_id" json:"session_id"`
+}
+
+func (q *Queries) MarkPhotoReady(ctx context.Context, arg MarkPhotoReadyParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markPhotoReady,
+		arg.ThumbKey,
+		arg.ProofKey,
+		arg.ID,
+		arg.SessionID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const markSessionPhotoUploaded = `-- name: MarkSessionPhotoUploaded :execrows
 UPDATE session_photos
 SET
