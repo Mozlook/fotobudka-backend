@@ -5,10 +5,13 @@ import (
 	"time"
 
 	"github.com/Mozlook/fotobudka-backend/internal/config"
+	"github.com/Mozlook/fotobudka-backend/internal/jobsworker"
 	"github.com/Mozlook/fotobudka-backend/internal/platform/db"
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 	applog "github.com/Mozlook/fotobudka-backend/internal/platform/logger"
+	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/jobs"
+	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 )
 
 func Run() error {
@@ -16,8 +19,7 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-
-	if err = cfg.Validate(); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return err
 	}
 
@@ -29,22 +31,49 @@ func Run() error {
 		return err
 	}
 	defer pool.Close()
-	query := dbgen.New(pool)
 
-	jobsRepo := jobs.New(query)
+	q := dbgen.New(pool)
 
 	log, closer, err := applog.New(cfg)
 	if err != nil {
 		return err
 	}
 	defer closer.Close()
+
+	storageClient, err := storage.New(cfg.S3)
+	if err != nil {
+		return err
+	}
+
+	jobsRepo := jobs.New(q)
+	sessionPhotosRepo := sessionphotosrepo.New(q, pool)
+
+	worker := jobsworker.New(
+		jobsRepo,
+		sessionPhotosRepo,
+		storageClient,
+		10, // limit
+	)
+
 	log.Info().Str("event_type", "app_started").Msg("worker starting")
 
-	ticker := time.NewTicker(30 * time.Second)
+	runCtx, cancelRun := context.WithTimeout(context.Background(), 30*time.Second)
+	if err := worker.RunOnce(runCtx); err != nil {
+		log.Error().Err(err).Msg("worker run once failed")
+	}
+	cancelRun()
+
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		log.Debug().Msg("worker heartbeat")
+		runCtx, cancelRun := context.WithTimeout(context.Background(), 30*time.Second)
+
+		if err := worker.RunOnce(runCtx); err != nil {
+			log.Error().Err(err).Msg("worker run once failed")
+		}
+
+		cancelRun()
 	}
 
 	return nil
