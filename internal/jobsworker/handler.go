@@ -14,10 +14,10 @@ var ErrRetryableJob = errors.New("retryable job error")
 func (w *Worker) handleJob(ctx context.Context, job jobs.Job) error {
 	switch job.Type {
 	case sessionphotos.JobTypeGenerateSessionPhotoVariants:
-		err := w.handleGenerateSessionPhotoVariants(ctx, job)
-		if err != nil {
-			return fmt.Errorf("generate session photo variant: %w", err)
+		if err := w.handleGenerateSessionPhotoVariants(ctx, job); err != nil {
+			return fmt.Errorf("generate session photo variants: %w", err)
 		}
+		return nil
 
 	default:
 		return fmt.Errorf("unknown job type: %s", job.Type)
@@ -25,5 +25,8 @@ func (w *Worker) handleJob(ctx context.Context, job jobs.Job) error {
 }
 
 func retryable(err error) error {
-	return fmt.Errorf("%w: %s", ErrRetryableJob, err.Error())
+	if err == nil {
+		return nil
+	}
+	return errors.Join(ErrRetryableJob, err)
 }

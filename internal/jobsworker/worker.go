@@ -40,28 +40,58 @@ func (w *Worker) RunOnce(ctx context.Context) error {
 	}
 
 	for _, job := range jobsToRun {
-		err := w.handleJob(ctx, job)
-		if err != nil {
-			if errors.Is(err, ErrRetryableJob) && job.Attempts < job.MaxAttempts {
+		jobErr := w.handleJob(ctx, job)
+		if jobErr != nil {
+			if errors.Is(jobErr, ErrRetryableJob) && job.Attempts < job.MaxAttempts {
 				nextRunAt := w.nextRetryTime(job.Attempts)
 
-				markErr := w.jobsRepo.MarkJobRetry(ctx, job.ID, err.Error(), nextRunAt)
+				markErr := w.jobsRepo.MarkJobRetry(ctx, job.ID, jobErr.Error(), nextRunAt)
 				if markErr != nil {
-					return fmt.Errorf("handle job %s failed: %v; additionally failed to mark retry: %w", job.ID, err, markErr)
+					return fmt.Errorf(
+						"handle job %s failed: %v; additionally failed to mark retry: %w",
+						job.ID,
+						jobErr,
+						markErr,
+					)
 				}
 
 				continue
 			}
-			markErr := w.jobsRepo.MarkJobFailed(ctx, job.ID, err.Error())
+
+			finalizeErr := w.handleFinalJobFailure(ctx, job, jobErr)
+
+			markErr := w.jobsRepo.MarkJobFailed(ctx, job.ID, jobErr.Error())
+
+			if finalizeErr != nil && markErr != nil {
+				return fmt.Errorf(
+					"handle job %s failed: %v; additionally failed to finalize job failure: %v; and failed to mark job failed: %w",
+					job.ID,
+					jobErr,
+					finalizeErr,
+					markErr,
+				)
+			}
+			if finalizeErr != nil {
+				return fmt.Errorf(
+					"handle job %s failed: %v; additionally failed to finalize job failure: %w",
+					job.ID,
+					jobErr,
+					finalizeErr,
+				)
+			}
 			if markErr != nil {
-				return fmt.Errorf("handle job %s failed: %v; additionally failed to mark job failed: %w", job.ID, err, markErr)
+				return fmt.Errorf(
+					"handle job %s failed: %v; additionally failed to mark job failed: %w",
+					job.ID,
+					jobErr,
+					markErr,
+				)
 			}
 
 			continue
 		}
 
-		err = w.jobsRepo.MarkJobSucceeded(ctx, job.ID)
-		if err != nil {
+		if err := w.jobsRepo.MarkJobSucceeded(ctx, job.ID); err != nil {
 			return fmt.Errorf("mark job %s succeeded: %w", job.ID, err)
 		}
 	}
