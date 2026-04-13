@@ -57,11 +57,10 @@ WHERE session_id = sqlc.arg(session_id);
 
 -- name: ListReadyClientSessionPhotos :many
 SELECT
-  sp.id,
+  sp.id AS photo_id,
   sp.thumb_key,
   s.note,
-  (s.photo_id IS NOT NULL) AS selected,
-  sp.created_at
+  (CASE WHEN s.photo_id IS NOT NULL THEN TRUE ELSE FALSE END)::boolean AS selected
 FROM session_photos sp
 LEFT JOIN selections s
   ON s.session_id = sp.session_id
