@@ -34,6 +34,11 @@ func (w *Worker) handleFinalJobFailure(ctx context.Context, job jobs.Job, cause 
 			return fmt.Errorf("mark photo failed: %w", err)
 		}
 
+		err := w.reconcileSessionStatus(ctx, sessionID)
+		if err != nil {
+			// TODO: Add warning log
+		}
+
 		return nil
 
 	default:

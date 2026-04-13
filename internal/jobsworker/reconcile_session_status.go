@@ -10,21 +10,28 @@ import (
 func (w *Worker) reconcileSessionStatus(ctx context.Context, sessionID uuid.UUID) error {
 	stats, err := w.sessionPhotosRepo.GetSessionPhotoStats(ctx, sessionID)
 	if err != nil {
-		return fmt.Errorf("get session by id: %w", err)
+		return fmt.Errorf("get session photo stats: %w", err)
 	}
-	unfinished := stats.pending_upload + stats.UploadedCount + stats.ProcessingCount
+
+	unfinished := stats.PendingUploadCount + stats.UploadedCount + stats.ProcessingCount
 
 	if unfinished > 0 {
 		return nil
 	}
 
 	if stats.ReadyCount > 0 {
-		w.sessionsRepo.TryMarkSessionSelecting(ctx, sessionID)
+		_, err := w.sessionsRepo.TryMarkSessionSelecting(ctx, sessionID)
+		if err != nil {
+			return fmt.Errorf("mark session selecting: %w", err)
+		}
 		return nil
 	}
 
 	if stats.FailedCount > 0 {
-		w.sessionsRepo.TryMarkSessionFailed(ctx, sessionID)
+		_, err := w.sessionsRepo.TryMarkSessionFailed(ctx, sessionID)
+		if err != nil {
+			return fmt.Errorf("mark session failed: %w", err)
+		}
 		return nil
 	}
 

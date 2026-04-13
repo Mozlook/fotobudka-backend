@@ -102,6 +102,10 @@ func (w *Worker) handleGenerateSessionPhotoVariants(ctx context.Context, job job
 		}
 		return retryable(fmt.Errorf("mark photo ready: %w", err))
 	}
+	err = w.reconcileSessionStatus(ctx, sessionID)
+	if err != nil {
+		// TODO: add warning logging
+	}
 
 	return nil
 }
