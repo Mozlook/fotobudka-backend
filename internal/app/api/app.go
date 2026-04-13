@@ -77,7 +77,7 @@ func Run() error {
 	provider := oauth.New(cfg)
 	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
 	meHandler := me.NewHandler(profilesRepo)
-	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, sessionPhotos, cfg.HTTP.FrontendOrigin)
+	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, sessionPhotos, sessionPhotosRepo, cfg.HTTP.FrontendOrigin)
 	clientHandler := client.NewHandler(sessionAccess, redisClient, cfg.Captcha.RecaptchaSecretKey)
 
 	srv := &http.Server{

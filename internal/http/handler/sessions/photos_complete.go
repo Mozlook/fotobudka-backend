@@ -41,7 +41,7 @@ func (h *Handler) PhotosComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = guard.EnsureSessionOwner(r.Context(), h.sessions, sessionID, userID)
+	err = guard.EnsureSessionOwner(r.Context(), h.sessionsRepo, sessionID, userID)
 	if err != nil {
 		if errors.Is(err, guard.ErrSessionNotAccessible) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/Mozlook/fotobudka-backend/internal/guard"
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
+	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
 	"github.com/google/uuid"
 )
@@ -31,6 +32,10 @@ type RegenerateSessionAccessResponse struct {
 	Code      string    `json:"code"`
 	Link      string    `json:"link"`
 	CreatedAt time.Time `json:"created_at"`
+}
+type GetsSessionByIDResponse struct {
+	Session    sessions.Session
+	PhotoStats sessionphotosrepo.PhotoStats `json:"photo_stats"`
 }
 
 // InsertSession creates a new session for the authenticated photographer.
@@ -72,7 +77,7 @@ func (h *Handler) InsertSession(w http.ResponseWriter, r *http.Request) {
 	}
 	id := uuid.New()
 
-	sessionStatus, err := h.sessions.InsertSession(r.Context(), sessions.InsertSessionInput{
+	sessionStatus, err := h.sessionsRepo.InsertSession(r.Context(), sessions.InsertSessionInput{
 		ID:              id,
 		PhotographerID:  userID,
 		Title:           req.Title,
@@ -124,7 +129,7 @@ func (h *Handler) GetAllSessions(w http.ResponseWriter, r *http.Request) {
 		offset = int32(parsedOffset)
 	}
 
-	sessionList, err := h.sessions.GetSessions(r.Context(), sessions.GetSessionsInput{
+	sessionList, err := h.sessionsRepo.GetSessions(r.Context(), sessions.GetSessionsInput{
 		PhotographerID: userID,
 		Offset:         offset,
 	})
@@ -163,7 +168,7 @@ func (h *Handler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	err = guard.EnsureSessionOwner(r.Context(), h.sessions, sessionID, userID)
+	err = guard.EnsureSessionOwner(r.Context(), h.sessionsRepo, sessionID, userID)
 	if err != nil {
 		if errors.Is(err, guard.ErrSessionNotAccessible) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -173,13 +178,23 @@ func (h *Handler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.sessions.GetSessionByID(r.Context(), sessionID)
+	session, err := h.sessionsRepo.GetSessionByID(r.Context(), sessionID)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	photoStats, err := h.sessionsPhotoRepo.GetSessionPhotoStats(r.Context(), sessionID)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	payload, err := json.Marshal(session)
+	response := GetsSessionByIDResponse{
+		Session:    session,
+		PhotoStats: photoStats,
+	}
+
+	payload, err := json.Marshal(response)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -204,7 +219,7 @@ func (h *Handler) CloseSession(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	err = guard.EnsureSessionOwner(r.Context(), h.sessions, sessionID, userID)
+	err = guard.EnsureSessionOwner(r.Context(), h.sessionsRepo, sessionID, userID)
 	if err != nil {
 		if errors.Is(err, guard.ErrSessionNotAccessible) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -214,7 +229,7 @@ func (h *Handler) CloseSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.sessions.CloseSession(r.Context(), sessionID)
+	session, err := h.sessionsRepo.CloseSession(r.Context(), sessionID)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -245,7 +260,7 @@ func (h *Handler) RegenerateSessionAccess(w http.ResponseWriter, r *http.Request
 
 	}
 
-	err = guard.EnsureSessionOwner(r.Context(), h.sessions, sessionID, userID)
+	err = guard.EnsureSessionOwner(r.Context(), h.sessionsRepo, sessionID, userID)
 	if err != nil {
 		if errors.Is(err, guard.ErrSessionNotAccessible) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
