@@ -55,20 +55,22 @@ func (q *Queries) GetSessionPhotoByIDAndSessionID(ctx context.Context, arg GetSe
 const getSessionPhotoStats = `-- name: GetSessionPhotoStats :one
 SELECT
     COUNT(*)::bigint AS total_count,
-    COUNT(*) FILTER (WHERE status = 'uploaded')::bigint   AS uploaded_count,
-    COUNT(*) FILTER (WHERE status = 'processing')::bigint AS processing_count,
-    COUNT(*) FILTER (WHERE status = 'ready')::bigint      AS ready_count,
-    COUNT(*) FILTER (WHERE status = 'failed')::bigint     AS failed_count
+    COUNT(*) FILTER (WHERE status = 'pending_upload')::bigint AS pending_upload_count,
+    COUNT(*) FILTER (WHERE status = 'uploaded')::bigint       AS uploaded_count,
+    COUNT(*) FILTER (WHERE status = 'processing')::bigint     AS processing_count,
+    COUNT(*) FILTER (WHERE status = 'ready')::bigint          AS ready_count,
+    COUNT(*) FILTER (WHERE status = 'failed')::bigint         AS failed_count
 FROM session_photos
 WHERE session_id = $1
 `
 
 type GetSessionPhotoStatsRow struct {
-	TotalCount      int64 `db:"total_count" json:"total_count"`
-	UploadedCount   int64 `db:"uploaded_count" json:"uploaded_count"`
-	ProcessingCount int64 `db:"processing_count" json:"processing_count"`
-	ReadyCount      int64 `db:"ready_count" json:"ready_count"`
-	FailedCount     int64 `db:"failed_count" json:"failed_count"`
+	TotalCount         int64 `db:"total_count" json:"total_count"`
+	PendingUploadCount int64 `db:"pending_upload_count" json:"pending_upload_count"`
+	UploadedCount      int64 `db:"uploaded_count" json:"uploaded_count"`
+	ProcessingCount    int64 `db:"processing_count" json:"processing_count"`
+	ReadyCount         int64 `db:"ready_count" json:"ready_count"`
+	FailedCount        int64 `db:"failed_count" json:"failed_count"`
 }
 
 func (q *Queries) GetSessionPhotoStats(ctx context.Context, sessionID uuid.UUID) (GetSessionPhotoStatsRow, error) {
@@ -76,6 +78,7 @@ func (q *Queries) GetSessionPhotoStats(ctx context.Context, sessionID uuid.UUID)
 	var i GetSessionPhotoStatsRow
 	err := row.Scan(
 		&i.TotalCount,
+		&i.PendingUploadCount,
 		&i.UploadedCount,
 		&i.ProcessingCount,
 		&i.ReadyCount,

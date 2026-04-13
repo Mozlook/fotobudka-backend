@@ -47,9 +47,10 @@ AND status IN ('uploaded', 'processing');
 -- name: GetSessionPhotoStats :one
 SELECT
     COUNT(*)::bigint AS total_count,
-    COUNT(*) FILTER (WHERE status = 'uploaded')::bigint   AS uploaded_count,
-    COUNT(*) FILTER (WHERE status = 'processing')::bigint AS processing_count,
-    COUNT(*) FILTER (WHERE status = 'ready')::bigint      AS ready_count,
-    COUNT(*) FILTER (WHERE status = 'failed')::bigint     AS failed_count
+    COUNT(*) FILTER (WHERE status = 'pending_upload')::bigint AS pending_upload_count,
+    COUNT(*) FILTER (WHERE status = 'uploaded')::bigint       AS uploaded_count,
+    COUNT(*) FILTER (WHERE status = 'processing')::bigint     AS processing_count,
+    COUNT(*) FILTER (WHERE status = 'ready')::bigint          AS ready_count,
+    COUNT(*) FILTER (WHERE status = 'failed')::bigint         AS failed_count
 FROM session_photos
 WHERE session_id = sqlc.arg(session_id);
