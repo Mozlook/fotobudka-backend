@@ -12,6 +12,27 @@ import (
 	"github.com/google/uuid"
 )
 
+const getActiveClientSessionAccessByID = `-- name: GetActiveClientSessionAccessByID :one
+SELECT
+  id,
+  session_id
+FROM session_access
+WHERE id = $1
+AND revoked_at IS NULL
+`
+
+type GetActiveClientSessionAccessByIDRow struct {
+	ID        uuid.UUID `db:"id" json:"id"`
+	SessionID uuid.UUID `db:"session_id" json:"session_id"`
+}
+
+func (q *Queries) GetActiveClientSessionAccessByID(ctx context.Context, id uuid.UUID) (GetActiveClientSessionAccessByIDRow, error) {
+	row := q.db.QueryRow(ctx, getActiveClientSessionAccessByID, id)
+	var i GetActiveClientSessionAccessByIDRow
+	err := row.Scan(&i.ID, &i.SessionID)
+	return i, err
+}
+
 const getClientSessionByCodeHMAC = `-- name: GetClientSessionByCodeHMAC :one
 SELECT 
   sessions.id,

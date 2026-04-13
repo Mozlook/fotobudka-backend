@@ -58,3 +58,11 @@ FROM session_access
 JOIN sessions ON session_access.session_id = sessions.id
 WHERE session_access.code_hmac = $1
 AND session_access.revoked_at IS NULL;
+
+-- name: GetActiveClientSessionAccessByID :one
+SELECT
+  id,
+  session_id
+FROM session_access
+WHERE id = sqlc.arg(id)
+AND revoked_at IS NULL;
