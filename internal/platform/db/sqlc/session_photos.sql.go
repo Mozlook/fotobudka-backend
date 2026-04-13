@@ -52,6 +52,38 @@ func (q *Queries) GetSessionPhotoByIDAndSessionID(ctx context.Context, arg GetSe
 	return i, err
 }
 
+const getSessionPhotoStats = `-- name: GetSessionPhotoStats :one
+SELECT
+    COUNT(*)::bigint AS total_count,
+    COUNT(*) FILTER (WHERE status = 'uploaded')::bigint   AS uploaded_count,
+    COUNT(*) FILTER (WHERE status = 'processing')::bigint AS processing_count,
+    COUNT(*) FILTER (WHERE status = 'ready')::bigint      AS ready_count,
+    COUNT(*) FILTER (WHERE status = 'failed')::bigint     AS failed_count
+FROM session_photos
+WHERE session_id = $1
+`
+
+type GetSessionPhotoStatsRow struct {
+	TotalCount      int64 `db:"total_count" json:"total_count"`
+	UploadedCount   int64 `db:"uploaded_count" json:"uploaded_count"`
+	ProcessingCount int64 `db:"processing_count" json:"processing_count"`
+	ReadyCount      int64 `db:"ready_count" json:"ready_count"`
+	FailedCount     int64 `db:"failed_count" json:"failed_count"`
+}
+
+func (q *Queries) GetSessionPhotoStats(ctx context.Context, sessionID uuid.UUID) (GetSessionPhotoStatsRow, error) {
+	row := q.db.QueryRow(ctx, getSessionPhotoStats, sessionID)
+	var i GetSessionPhotoStatsRow
+	err := row.Scan(
+		&i.TotalCount,
+		&i.UploadedCount,
+		&i.ProcessingCount,
+		&i.ReadyCount,
+		&i.FailedCount,
+	)
+	return i, err
+}
+
 const markPhotoFailed = `-- name: MarkPhotoFailed :execrows
 UPDATE session_photos
 SET
