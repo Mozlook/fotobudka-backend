@@ -66,7 +66,8 @@ func (r *Repository) GetClientSessionByTokenHMAC(ctx context.Context, tokenHMAC 
 	}
 
 	return ClientSession{
-		ID:              row.ID,
+		SessionAccessID: row.SessionAccessID,
+		SessionID:       row.SessionID,
 		Status:          row.Status,
 		BasePriceCents:  row.BasePriceCents,
 		IncludedCount:   row.IncludedCount,
@@ -85,7 +86,8 @@ func (r *Repository) GetClientSessionByCodeHMAC(ctx context.Context, codeHMAC st
 	}
 
 	return ClientSession{
-		ID:              row.ID,
+		SessionAccessID: row.SessionAccessID,
+		SessionID:       row.SessionID,
 		Status:          row.Status,
 		BasePriceCents:  row.BasePriceCents,
 		IncludedCount:   row.IncludedCount,

@@ -28,7 +28,8 @@ RETURNING
 
 -- name: GetClientSessionByTokenHMAC :one
 SELECT 
-  sessions.id,
+  session_access.id AS session_access_id,
+  sessions.id AS session_id,
   sessions.status,
   sessions.base_price_cents,
   sessions.included_count,
@@ -45,7 +46,8 @@ AND session_access.revoked_at IS NULL;
 
 -- name: GetClientSessionByCodeHMAC :one
 SELECT 
-  sessions.id,
+  session_access.id AS session_access_id,
+  sessions.id AS session_id,
   sessions.status,
   sessions.base_price_cents,
   sessions.included_count,

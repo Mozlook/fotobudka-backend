@@ -33,7 +33,8 @@ type RevokedSessionAccess struct {
 }
 
 type ClientSession struct {
-	ID              uuid.UUID
+	SessionAccessID uuid.UUID
+	SessionID       uuid.UUID
 	Status          string
 	BasePriceCents  int32
 	IncludedCount   int32

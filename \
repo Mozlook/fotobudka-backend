@@ -47,7 +47,7 @@ func (h *Handler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payload, err := json.Marshal(ClientSessionResponse{
-		ID:              clientSession.SessionID,
+		ID:              clientSession.ID,
 		Status:          clientSession.Status,
 		BasePriceCents:  clientSession.BasePriceCents,
 		IncludedCount:   clientSession.IncludedCount,
@@ -62,7 +62,7 @@ func (h *Handler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookieToken, expiresAt, err := h.clientManager.IssueClientToken(clientSession.SessionAccessID, clientSession.SessionID)
+	cookieToken, expiresAt, err := h.clientManager.IssueClientToken(clientSession.SessionAccessID, clientSession.ID)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -146,7 +146,7 @@ func (h *Handler) GetSessionByCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookieToken, expiresAt, err := h.clientManager.IssueClientToken(clientSession.SessionAccessID, clientSession.SessionID)
+	cookieToken, expiresAt, err := h.clientManager.IssueClientToken(clientSession.SessionAccessID, clientSession.ID)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -154,7 +154,7 @@ func (h *Handler) GetSessionByCode(w http.ResponseWriter, r *http.Request) {
 
 	h.clientManager.SetClientCookie(w, cookieToken, expiresAt)
 	writeJSON(w, http.StatusOK, ClientSessionResponse{
-		ID:              clientSession.SessionID,
+		ID:              clientSession.ID,
 		Status:          clientSession.Status,
 		BasePriceCents:  clientSession.BasePriceCents,
 		IncludedCount:   clientSession.IncludedCount,

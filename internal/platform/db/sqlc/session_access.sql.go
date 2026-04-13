@@ -35,7 +35,8 @@ func (q *Queries) GetActiveClientSessionAccessByID(ctx context.Context, id uuid.
 
 const getClientSessionByCodeHMAC = `-- name: GetClientSessionByCodeHMAC :one
 SELECT 
-  sessions.id,
+  session_access.id AS session_access_id,
+  sessions.id AS session_id,
   sessions.status,
   sessions.base_price_cents,
   sessions.included_count,
@@ -51,7 +52,8 @@ AND session_access.revoked_at IS NULL
 `
 
 type GetClientSessionByCodeHMACRow struct {
-	ID              uuid.UUID `db:"id" json:"id"`
+	SessionAccessID uuid.UUID `db:"session_access_id" json:"session_access_id"`
+	SessionID       uuid.UUID `db:"session_id" json:"session_id"`
 	Status          string    `db:"status" json:"status"`
 	BasePriceCents  int32     `db:"base_price_cents" json:"base_price_cents"`
 	IncludedCount   int32     `db:"included_count" json:"included_count"`
@@ -66,7 +68,8 @@ func (q *Queries) GetClientSessionByCodeHMAC(ctx context.Context, codeHmac strin
 	row := q.db.QueryRow(ctx, getClientSessionByCodeHMAC, codeHmac)
 	var i GetClientSessionByCodeHMACRow
 	err := row.Scan(
-		&i.ID,
+		&i.SessionAccessID,
+		&i.SessionID,
 		&i.Status,
 		&i.BasePriceCents,
 		&i.IncludedCount,
@@ -81,7 +84,8 @@ func (q *Queries) GetClientSessionByCodeHMAC(ctx context.Context, codeHmac strin
 
 const getClientSessionByTokenHMAC = `-- name: GetClientSessionByTokenHMAC :one
 SELECT 
-  sessions.id,
+  session_access.id AS session_access_id,
+  sessions.id AS session_id,
   sessions.status,
   sessions.base_price_cents,
   sessions.included_count,
@@ -97,7 +101,8 @@ AND session_access.revoked_at IS NULL
 `
 
 type GetClientSessionByTokenHMACRow struct {
-	ID              uuid.UUID `db:"id" json:"id"`
+	SessionAccessID uuid.UUID `db:"session_access_id" json:"session_access_id"`
+	SessionID       uuid.UUID `db:"session_id" json:"session_id"`
 	Status          string    `db:"status" json:"status"`
 	BasePriceCents  int32     `db:"base_price_cents" json:"base_price_cents"`
 	IncludedCount   int32     `db:"included_count" json:"included_count"`
@@ -112,7 +117,8 @@ func (q *Queries) GetClientSessionByTokenHMAC(ctx context.Context, tokenHmac str
 	row := q.db.QueryRow(ctx, getClientSessionByTokenHMAC, tokenHmac)
 	var i GetClientSessionByTokenHMACRow
 	err := row.Scan(
-		&i.ID,
+		&i.SessionAccessID,
+		&i.SessionID,
 		&i.Status,
 		&i.BasePriceCents,
 		&i.IncludedCount,
