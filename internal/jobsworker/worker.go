@@ -16,7 +16,7 @@ import (
 type Worker struct {
 	workerID          string
 	jobsRepo          *jobs.Repository
-	sessionphotosRepo *sessionphotosrepo.Repository
+	sessionPhotosRepo *sessionphotosrepo.Repository
 	sessionsRepo      *sessions.Repository
 	storage           *storage.Client
 	limit             int32
@@ -35,7 +35,7 @@ func New(
 	return &Worker{
 		workerID:          uuid.NewString(),
 		jobsRepo:          jobsRepo,
-		sessionphotosRepo: sessionphotosRepo,
+		sessionPhotosRepo: sessionphotosRepo,
 		sessionsRepo:      sessionsRepo,
 		storage:           storage,
 		limit:             limit,

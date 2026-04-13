@@ -30,7 +30,7 @@ func (w *Worker) handleFinalJobFailure(ctx context.Context, job jobs.Job, cause 
 			return fmt.Errorf("photoID cannot be empty")
 		}
 
-		if err := w.sessionphotosRepo.MarkPhotoFailed(ctx, photoID, sessionID); err != nil {
+		if err := w.sessionPhotosRepo.MarkPhotoFailed(ctx, photoID, sessionID); err != nil {
 			return fmt.Errorf("mark photo failed: %w", err)
 		}
 

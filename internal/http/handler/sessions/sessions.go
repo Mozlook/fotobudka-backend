@@ -33,7 +33,7 @@ type RegenerateSessionAccessResponse struct {
 	Link      string    `json:"link"`
 	CreatedAt time.Time `json:"created_at"`
 }
-type GetsSessionByIDResponse struct {
+type GetSessionByIDResponse struct {
 	Session    sessions.Session
 	PhotoStats sessionphotosrepo.PhotoStats `json:"photo_stats"`
 }
@@ -189,7 +189,7 @@ func (h *Handler) GetSessionByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := GetsSessionByIDResponse{
+	response := GetSessionByIDResponse{
 		Session:    session,
 		PhotoStats: photoStats,
 	}

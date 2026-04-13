@@ -39,11 +39,12 @@ type SessionPhoto struct {
 }
 
 type PhotoStats struct {
-	TotalCount      int64
-	UploadedCount   int64
-	ProcessingCount int64
-	ReadyCount      int64
-	FailedCount     int64
+	PendingUploadCount int64
+	TotalCount         int64
+	UploadedCount      int64
+	ProcessingCount    int64
+	ReadyCount         int64
+	FailedCount        int64
 }
 
 var ErrSessionPhotoNotFound = errors.New("session photo not found")
@@ -205,10 +206,11 @@ func (r *Repository) GetSessionPhotoStats(ctx context.Context, sessionID uuid.UU
 	}
 
 	return PhotoStats{
-		TotalCount:      stats.TotalCount,
-		UploadedCount:   stats.UploadedCount,
-		ProcessingCount: stats.ProcessingCount,
-		ReadyCount:      stats.ReadyCount,
-		FailedCount:     stats.FailedCount,
+		PendingUploadCount: stats.PendingUploadCount,
+		TotalCount:         stats.TotalCount,
+		UploadedCount:      stats.UploadedCount,
+		ProcessingCount:    stats.ProcessingCount,
+		ReadyCount:         stats.ReadyCount,
+		FailedCount:        stats.FailedCount,
 	}, nil
 }

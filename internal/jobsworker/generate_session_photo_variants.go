@@ -34,7 +34,7 @@ func (w *Worker) handleGenerateSessionPhotoVariants(ctx context.Context, job job
 		return fmt.Errorf("sourceKey cannot be empty")
 	}
 
-	if err := w.sessionphotosRepo.MarkPhotoProcessing(ctx, photoID, sessionID); err != nil {
+	if err := w.sessionPhotosRepo.MarkPhotoProcessing(ctx, photoID, sessionID); err != nil {
 		if errors.Is(err, sessionphotosrepo.ErrSessionPhotoNotFound) {
 			return fmt.Errorf("mark photo processing: %w", err)
 		}
@@ -96,7 +96,7 @@ func (w *Worker) handleGenerateSessionPhotoVariants(ctx context.Context, job job
 		return retryable(fmt.Errorf("put proof: %w", err))
 	}
 
-	if err := w.sessionphotosRepo.MarkPhotoReady(ctx, photoID, sessionID, thumbKey, proofKey); err != nil {
+	if err := w.sessionPhotosRepo.MarkPhotoReady(ctx, photoID, sessionID, thumbKey, proofKey); err != nil {
 		if errors.Is(err, sessionphotosrepo.ErrSessionPhotoNotFound) {
 			return fmt.Errorf("mark photo ready: %w", err)
 		}
