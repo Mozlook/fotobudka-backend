@@ -25,8 +25,8 @@ type Manager struct {
 	cookieSecure bool
 }
 
-// New creates a manager configured from application settings
-func New(cfg config.Config) *Manager {
+// NewManager creates a manager configured from application settings
+func NewManager(cfg config.Config) *Manager {
 	return &Manager{
 		secret:       []byte(cfg.JWT.Secret),
 		issuer:       cfg.JWT.Issuer,

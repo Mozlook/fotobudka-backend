@@ -73,7 +73,7 @@ func Run() error {
 	}
 	defer redisClient.Close()
 
-	manager := appauth.New(cfg)
+	manager := appauth.NewManager(cfg)
 	provider := oauth.New(cfg)
 	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
 	meHandler := me.NewHandler(profilesRepo)

@@ -88,14 +88,16 @@ func Load() (Config, error) {
 			LogDir: getEnv("SIEM_LOG_DIR", ""),
 		},
 		JWT: JWTConfig{
-			Secret:   getEnv("JWT_SECRET", ""),
-			Issuer:   getEnv("JWT_ISSUER", ""),
-			Audience: getEnv("JWT_AUDIENCE", ""),
-			TTLHours: jwtTTLHours,
+			Secret:         getEnv("JWT_SECRET", ""),
+			Issuer:         getEnv("JWT_ISSUER", ""),
+			Audience:       getEnv("JWT_AUDIENCE", ""),
+			ClientAudience: getEnv("JWT_CLIENT_AUDIENCE", ""),
+			TTLHours:       jwtTTLHours,
 		}, Cookie: CookieConfig{
-			Name:   getEnv("COOKIE_NAME", "fotobudka_session"),
-			Domain: getEnv("COOKIE_DOMAIN", ""),
-			Secure: cookieSecure,
+			Name:       getEnv("COOKIE_NAME", "fotobudka_session"),
+			ClientName: getEnv("COOKIE_CLIENT_NAME", "fotobudka_session_client"),
+			Domain:     getEnv("COOKIE_DOMAIN", ""),
+			Secure:     cookieSecure,
 		},
 	}
 

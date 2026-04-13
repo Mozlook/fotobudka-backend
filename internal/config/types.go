@@ -131,7 +131,8 @@ type JWTConfig struct {
 	Issuer string
 
 	// Audience identifies the intended recipient or consumer of the token.
-	Audience string
+	Audience       string
+	ClientAudience string
 
 	// TTLHours defines how long an issued token remains valid, in hours.
 	TTLHours int
@@ -140,7 +141,8 @@ type JWTConfig struct {
 // CookieConfig contains settings used when writing the authentication cookie.
 type CookieConfig struct {
 	// Name is the cookie name sent to the client browser.
-	Name string
+	Name       string
+	ClientName string
 
 	// Domain is an optional cookie domain attribute.
 	// When empty, the cookie is scoped to the current host only.
