@@ -47,6 +47,13 @@ type PhotoStats struct {
 	FailedCount        int64
 }
 
+type ClientSessionPhoto struct {
+	PhotoID  uuid.UUID
+	ThumbKey *string
+	Selected bool
+	Note     *string
+}
+
 var ErrSessionPhotoNotFound = errors.New("session photo not found")
 
 func New(sessionPhotosRepo *dbgen.Queries, pool *pgxpool.Pool) *Repository {
@@ -213,4 +220,27 @@ func (r *Repository) GetSessionPhotoStats(ctx context.Context, sessionID uuid.UU
 		ReadyCount:         stats.ReadyCount,
 		FailedCount:        stats.FailedCount,
 	}, nil
+}
+
+func (r *Repository) ListReadyClientSessionPhotos(ctx context.Context, sessionID uuid.UUID, offsetCount int32) ([]ClientSessionPhoto, error) {
+	rows, err := r.sessionPhotosRepo.ListReadyClientSessionPhotos(ctx, dbgen.ListReadyClientSessionPhotosParams{
+		SessionID:   sessionID,
+		OffsetCount: offsetCount,
+		LimitCount:  200,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list ready client session photos: %w", err)
+	}
+
+	photos := make([]ClientSessionPhoto, 0, len(rows))
+	for _, row := range rows {
+		photos = append(photos, ClientSessionPhoto{
+			PhotoID:  row.PhotoID,
+			ThumbKey: row.ThumbKey,
+			Selected: row.Selected,
+			Note:     row.Note,
+		})
+	}
+
+	return photos, nil
 }

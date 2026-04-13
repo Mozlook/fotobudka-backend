@@ -7,7 +7,6 @@ package dbgen
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -90,11 +89,10 @@ func (q *Queries) GetSessionPhotoStats(ctx context.Context, sessionID uuid.UUID)
 
 const listReadyClientSessionPhotos = `-- name: ListReadyClientSessionPhotos :many
 SELECT
-  sp.id,
+  sp.id AS photo_id,
   sp.thumb_key,
   s.note,
-  (s.photo_id IS NOT NULL) AS selected,
-  sp.created_at
+  (CASE WHEN s.photo_id IS NOT NULL THEN TRUE ELSE FALSE END)::boolean AS selected
 FROM session_photos sp
 LEFT JOIN selections s
   ON s.session_id = sp.session_id
@@ -113,11 +111,10 @@ type ListReadyClientSessionPhotosParams struct {
 }
 
 type ListReadyClientSessionPhotosRow struct {
-	ID        uuid.UUID   `db:"id" json:"id"`
-	ThumbKey  *string     `db:"thumb_key" json:"thumb_key"`
-	Note      *string     `db:"note" json:"note"`
-	Selected  interface{} `db:"selected" json:"selected"`
-	CreatedAt time.Time   `db:"created_at" json:"created_at"`
+	PhotoID  uuid.UUID `db:"photo_id" json:"photo_id"`
+	ThumbKey *string   `db:"thumb_key" json:"thumb_key"`
+	Note     *string   `db:"note" json:"note"`
+	Selected bool      `db:"selected" json:"selected"`
 }
 
 func (q *Queries) ListReadyClientSessionPhotos(ctx context.Context, arg ListReadyClientSessionPhotosParams) ([]ListReadyClientSessionPhotosRow, error) {
@@ -130,11 +127,10 @@ func (q *Queries) ListReadyClientSessionPhotos(ctx context.Context, arg ListRead
 	for rows.Next() {
 		var i ListReadyClientSessionPhotosRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.PhotoID,
 			&i.ThumbKey,
 			&i.Note,
 			&i.Selected,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
