@@ -90,3 +90,27 @@ RETURNING
   status,
   closed_at,
   delete_after;
+
+-- name: MarkSessionProcessing :execrows
+UPDATE sessions
+SET
+    status = 'processing',
+    updated_at = now()
+WHERE id = sqlc.arg(id)
+  AND status = 'draft';
+
+-- name: MarkSessionSelecting :execrows
+UPDATE sessions
+SET
+    status = 'selecting',
+    updated_at = now()
+WHERE id = sqlc.arg(id)
+  AND status = 'processing';
+
+-- name: MarkSessionFailed :execrows
+UPDATE sessions
+SET
+    status = 'failed',
+    updated_at = now()
+WHERE id = sqlc.arg(id)
+  AND status IN ('draft', 'processing');
