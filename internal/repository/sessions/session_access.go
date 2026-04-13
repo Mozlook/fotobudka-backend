@@ -2,11 +2,20 @@ package sessions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
+
+var ErrActiveClientSessionAccessNotFound = errors.New("active client session access not found")
+
+type MiddlewareSessionAccess struct {
+	SessionID       uuid.UUID
+	SessionAccessID uuid.UUID
+}
 
 // InsertSessionAccess creates a new session access record for the given
 // session and returns its identifier together with the creation timestamp.
@@ -28,8 +37,8 @@ func (r *Repository) InsertSessionAccess(ctx context.Context, in InsertSessionAc
 //
 // Only records that were active at the time of the update should be
 // affected by the underlying query.
-func (r *Repository) RevokeSessionAccess(ctx context.Context, sessionID uuid.UUID) ([]RevokedSessionAccess, error) {
-	rows, err := r.q.RevokeSessionAccess(ctx, sessionID)
+func (r *Repository) RevokeSessionAccess(ctx context.Context, sessionAccessID uuid.UUID) ([]RevokedSessionAccess, error) {
+	rows, err := r.q.RevokeSessionAccess(ctx, sessionAccessID)
 	if err != nil {
 		return nil, fmt.Errorf("revoke session access: %w", err)
 	}
@@ -86,4 +95,15 @@ func (r *Repository) GetClientSessionByCodeHMAC(ctx context.Context, codeHMAC st
 		PaymentMode:     row.PaymentMode,
 		Title:           row.Title,
 	}, nil
+}
+
+func (r *Repository) GetActiveClientSessionAccessByID(ctx context.Context, sessionID uuid.UUID) (MiddlewareSessionAccess, error) {
+	row, err := r.q.GetActiveClientSessionAccessByID(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return MiddlewareSessionAccess{}, ErrActiveClientSessionAccessNotFound
+		}
+		return MiddlewareSessionAccess{}, fmt.Errorf("get active client session access by id: %w", err)
+	}
+	return MiddlewareSessionAccess{SessionID: row.SessionID, SessionAccessID: row.ID}, nil
 }
