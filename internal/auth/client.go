@@ -1,13 +1,17 @@
 package appauth
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Mozlook/fotobudka-backend/internal/config"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
+
+var ErrNoClientToken = errors.New("auth client cookie is missing")
 
 type ClientManager struct {
 	secret       []byte
@@ -90,4 +94,58 @@ func (m *ClientManager) ParseAndValidateClient(tokenString string) (string, stri
 		return "", "", fmt.Errorf("token sessionID is empty")
 	}
 	return claims.Subject, claims.SessionID, nil
+}
+
+func (m *ClientManager) SetClientCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
+	cookie := &http.Cookie{
+		Name:     m.cookieName,
+		Value:    token,
+		Path:     "/",
+		Expires:  expiresAt.UTC(),
+		MaxAge:   int(time.Until(expiresAt).Seconds()),
+		Secure:   m.cookieSecure,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	if m.cookieDomain != "" {
+		cookie.Domain = m.cookieDomain
+	}
+
+	http.SetCookie(w, cookie)
+}
+
+func (m *ClientManager) ClearClientCookie(w http.ResponseWriter) {
+	cookie := &http.Cookie{
+		Name:     m.cookieName,
+		Value:    "",
+		Path:     "/api/client",
+		Expires:  time.Unix(0, 0).UTC(),
+		MaxAge:   -1,
+		Secure:   m.cookieSecure,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	if m.cookieDomain != "" {
+		cookie.Domain = m.cookieDomain
+	}
+
+	http.SetCookie(w, cookie)
+}
+
+func (m *ClientManager) TokenFromRequest(r *http.Request) (string, error) {
+	cookie, err := r.Cookie(m.cookieName)
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			return "", ErrNoAuthToken
+		}
+		return "", err
+	}
+
+	if cookie.Value == "" {
+		return "", ErrNoClientToken
+	}
+
+	return cookie.Value, nil
 }
