@@ -38,6 +38,14 @@ type SessionPhoto struct {
 	WatermarkSeed   int32
 }
 
+type PhotoStats struct {
+	TotalCount      int64
+	UploadedCount   int64
+	ProcessingCount int64
+	ReadyCount      int64
+	FailedCount     int64
+}
+
 var ErrSessionPhotoNotFound = errors.New("session photo not found")
 
 func New(sessionPhotosRepo *dbgen.Queries, pool *pgxpool.Pool) *Repository {
@@ -188,4 +196,19 @@ func (r *Repository) MarkPhotoFailed(ctx context.Context, photoID, sessionID uui
 	}
 
 	return nil
+}
+
+func (r *Repository) GetSessionPhotoStats(ctx context.Context, sessionID uuid.UUID) (PhotoStats, error) {
+	stats, err := r.sessionPhotosRepo.GetSessionPhotoStats(ctx, sessionID)
+	if err != nil {
+		return PhotoStats{}, fmt.Errorf("get session photo stats: %w", err)
+	}
+
+	return PhotoStats{
+		TotalCount:      stats.TotalCount,
+		UploadedCount:   stats.UploadedCount,
+		ProcessingCount: stats.ProcessingCount,
+		ReadyCount:      stats.ReadyCount,
+		FailedCount:     stats.FailedCount,
+	}, nil
 }
