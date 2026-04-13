@@ -36,10 +36,10 @@ func NewClientManager(cfg config.Config) *ClientManager {
 }
 
 func (m *ClientManager) IssueClientToken(sessionAccessID, sessionID uuid.UUID) (string, time.Time, error) {
-	if sessionAccessID.String() == "" {
+	if sessionAccessID == uuid.Nil {
 		return "", time.Time{}, fmt.Errorf("sessionAccessID cannot be empty")
 	}
-	if sessionID.String() == "" {
+	if sessionID == uuid.Nil {
 		return "", time.Time{}, fmt.Errorf("sessionID cannot be empty")
 	}
 
