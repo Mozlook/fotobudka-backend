@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -85,6 +86,64 @@ func (q *Queries) GetSessionPhotoStats(ctx context.Context, sessionID uuid.UUID)
 		&i.FailedCount,
 	)
 	return i, err
+}
+
+const listReadyClientSessionPhotos = `-- name: ListReadyClientSessionPhotos :many
+SELECT
+  sp.id,
+  sp.thumb_key,
+  s.note,
+  (s.photo_id IS NOT NULL) AS selected,
+  sp.created_at
+FROM session_photos sp
+LEFT JOIN selections s
+  ON s.session_id = sp.session_id
+ AND s.photo_id = sp.id
+WHERE sp.session_id = $1
+  AND sp.status = 'ready'
+ORDER BY sp.created_at, sp.id
+LIMIT $3
+OFFSET $2
+`
+
+type ListReadyClientSessionPhotosParams struct {
+	SessionID   uuid.UUID `db:"session_id" json:"session_id"`
+	OffsetCount int32     `db:"offset_count" json:"offset_count"`
+	LimitCount  int32     `db:"limit_count" json:"limit_count"`
+}
+
+type ListReadyClientSessionPhotosRow struct {
+	ID        uuid.UUID   `db:"id" json:"id"`
+	ThumbKey  *string     `db:"thumb_key" json:"thumb_key"`
+	Note      *string     `db:"note" json:"note"`
+	Selected  interface{} `db:"selected" json:"selected"`
+	CreatedAt time.Time   `db:"created_at" json:"created_at"`
+}
+
+func (q *Queries) ListReadyClientSessionPhotos(ctx context.Context, arg ListReadyClientSessionPhotosParams) ([]ListReadyClientSessionPhotosRow, error) {
+	rows, err := q.db.Query(ctx, listReadyClientSessionPhotos, arg.SessionID, arg.OffsetCount, arg.LimitCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListReadyClientSessionPhotosRow{}
+	for rows.Next() {
+		var i ListReadyClientSessionPhotosRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ThumbKey,
+			&i.Note,
+			&i.Selected,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const markPhotoFailed = `-- name: MarkPhotoFailed :execrows

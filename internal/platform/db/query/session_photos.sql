@@ -54,3 +54,20 @@ SELECT
     COUNT(*) FILTER (WHERE status = 'failed')::bigint         AS failed_count
 FROM session_photos
 WHERE session_id = sqlc.arg(session_id);
+
+-- name: ListReadyClientSessionPhotos :many
+SELECT
+  sp.id,
+  sp.thumb_key,
+  s.note,
+  (s.photo_id IS NOT NULL) AS selected,
+  sp.created_at
+FROM session_photos sp
+LEFT JOIN selections s
+  ON s.session_id = sp.session_id
+ AND s.photo_id = sp.id
+WHERE sp.session_id = sqlc.arg(session_id)
+  AND sp.status = 'ready'
+ORDER BY sp.created_at, sp.id
+LIMIT sqlc.arg(limit_count)
+OFFSET sqlc.arg(offset_count);
