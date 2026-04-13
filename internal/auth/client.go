@@ -62,3 +62,32 @@ func (m *ClientManager) IssueClientToken(sessionAccessID, sessionID uuid.UUID) (
 
 	return tokenString, expiresAt, nil
 }
+
+func (m *ClientManager) ParseAndValidateClient(tokenString string) (string, string, error) {
+	claims := &ClientClaims{}
+
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
+		return m.secret, nil
+	},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithIssuer(m.issuer),
+		jwt.WithAudience(m.audience),
+		jwt.WithExpirationRequired(),
+		jwt.WithIssuedAt(),
+	)
+	if err != nil {
+		return "", "", fmt.Errorf("parse client token: %w", err)
+	}
+
+	if !token.Valid {
+		return "", "", fmt.Errorf("invalid token")
+	}
+
+	if claims.Subject == "" {
+		return "", "", fmt.Errorf("token subject is empty")
+	}
+	if claims.SessionID == "" {
+		return "", "", fmt.Errorf("token sessionID is empty")
+	}
+	return claims.Subject, claims.SessionID, nil
+}
