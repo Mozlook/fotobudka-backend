@@ -81,6 +81,14 @@ func (s *Service) CompleteUpload(ctx context.Context, sessionID, photoID uuid.UU
 		return fmt.Errorf("enqueue generate_session_photo_variants job: %w", err)
 	}
 
+	count, err := qtx.MarkSessionProcessing(ctx, sessionID)
+	if err != nil {
+		return fmt.Errorf("mark session processing: %w", err)
+	}
+	if count > 1 {
+		return fmt.Errorf("mark session processing: unexpected affected rows: %d", count)
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit tx: %w", err)
 	}
