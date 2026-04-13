@@ -5,12 +5,21 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
 	"github.com/Mozlook/fotobudka-backend/internal/platform/captcha"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionaccess"
+	"github.com/Mozlook/fotobudka-backend/internal/sessionphotos"
 	"github.com/google/uuid"
 )
+
+type GetSessionPhotosResponse struct {
+	Items  []sessionphotos.ClientSessionPhotoResponse `json:"items"`
+	Offset int32                                      `json:"offset"`
+	Limit  int32                                      `json:"limit"`
+}
 
 type ClientSessionByCodeRequest struct {
 	Code         string `json:"code"`
@@ -164,4 +173,35 @@ func (h *Handler) GetSessionByCode(w http.ResponseWriter, r *http.Request) {
 		PaymentMode:     clientSession.PaymentMode,
 		Title:           clientSession.Title,
 	})
+}
+
+func (h *Handler) GetSessionPhotos(w http.ResponseWriter, r *http.Request) {
+	offset := r.URL.Query().Get("offset")
+	offsetCount := 0
+	if offset != "" {
+		offsetCount, err := strconv.Atoi(offset)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if offsetCount < 0 {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+	}
+
+	sessionID, ok := middleware.ClientSessionIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(photos)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 }
