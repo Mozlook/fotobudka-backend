@@ -242,3 +242,54 @@ func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (I
 	err := row.Scan(&i.ID, &i.Status)
 	return i, err
 }
+
+const markSessionFailed = `-- name: MarkSessionFailed :execrows
+UPDATE sessions
+SET
+    status = 'failed',
+    updated_at = now()
+WHERE id = $1
+  AND status IN ('draft', 'processing')
+`
+
+func (q *Queries) MarkSessionFailed(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markSessionFailed, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const markSessionProcessing = `-- name: MarkSessionProcessing :execrows
+UPDATE sessions
+SET
+    status = 'processing',
+    updated_at = now()
+WHERE id = $1
+  AND status = 'draft'
+`
+
+func (q *Queries) MarkSessionProcessing(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markSessionProcessing, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const markSessionSelecting = `-- name: MarkSessionSelecting :execrows
+UPDATE sessions
+SET
+    status = 'selecting',
+    updated_at = now()
+WHERE id = $1
+  AND status = 'processing'
+`
+
+func (q *Queries) MarkSessionSelecting(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markSessionSelecting, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
