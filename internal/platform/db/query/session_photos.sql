@@ -70,3 +70,12 @@ WHERE sp.session_id = sqlc.arg(session_id)
 ORDER BY sp.created_at, sp.id
 LIMIT sqlc.arg(limit_count)
 OFFSET sqlc.arg(offset_count);
+
+-- name: GetReadyClientPhotoProofKey :one
+SELECT
+  proof_key
+FROM session_photos
+WHERE id = sqlc.arg(photo_id)
+  AND session_id = sqlc.arg(session_id)
+  AND status = 'ready'
+  AND proof_key IS NOT NULL;

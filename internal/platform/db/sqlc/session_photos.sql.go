@@ -11,6 +11,28 @@ import (
 	"github.com/google/uuid"
 )
 
+const getReadyClientPhotoProofKey = `-- name: GetReadyClientPhotoProofKey :one
+SELECT
+  proof_key
+FROM session_photos
+WHERE id = $1
+  AND session_id = $2
+  AND status = 'ready'
+  AND proof_key IS NOT NULL
+`
+
+type GetReadyClientPhotoProofKeyParams struct {
+	PhotoID   uuid.UUID `db:"photo_id" json:"photo_id"`
+	SessionID uuid.UUID `db:"session_id" json:"session_id"`
+}
+
+func (q *Queries) GetReadyClientPhotoProofKey(ctx context.Context, arg GetReadyClientPhotoProofKeyParams) (*string, error) {
+	row := q.db.QueryRow(ctx, getReadyClientPhotoProofKey, arg.PhotoID, arg.SessionID)
+	var proof_key *string
+	err := row.Scan(&proof_key)
+	return proof_key, err
+}
+
 const getSessionPhotoByIDAndSessionID = `-- name: GetSessionPhotoByIDAndSessionID :one
 SELECT
     id,
