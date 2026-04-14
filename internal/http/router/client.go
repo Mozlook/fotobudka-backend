@@ -19,8 +19,8 @@ func registerClientRouter(
 		return middleware.RequireClientSessionAccess(clientManager, sessionsRepo, next)
 	}
 
-	mux.Handle("GET /api/client/session/by-token/{token}", http.HandlerFunc(clientHandler.GetSessionByToken))
-	mux.Handle("POST /api/client/session/by-code", http.HandlerFunc(clientHandler.GetSessionByCode))
+	mux.Handle("GET /api/client/access/by-token/{token}", http.HandlerFunc(clientHandler.GetSessionByToken))
+	mux.Handle("POST /api/client/access/by-code", http.HandlerFunc(clientHandler.GetSessionByCode))
 
 	mux.Handle("GET /api/client/session/{sessionId}/photos",
 		clientAccess(http.HandlerFunc(clientHandler.GetSessionPhotos)),
