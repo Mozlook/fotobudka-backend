@@ -2,9 +2,11 @@ package sessionphotos
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	"github.com/google/uuid"
 )
 
@@ -51,4 +53,28 @@ func (s *Service) ListReadyClientSessionThumbs(ctx context.Context, sessionID uu
 	}
 
 	return items, nil
+}
+
+func (s *Service) GetReadyClientPhotoProofURL(ctx context.Context, sessionID, photoID uuid.UUID) (string, error) {
+	if sessionID == uuid.Nil {
+		return "", fmt.Errorf("session_id cannot be nil")
+	}
+	if photoID == uuid.Nil {
+		return "", fmt.Errorf("photo_id cannot be nil")
+	}
+
+	proofKey, err := s.photosRepo.GetReadyClientPhotoProofKey(ctx, sessionID, photoID)
+	if err != nil {
+		if errors.Is(err, sessionphotosrepo.ErrSessionPhotoNotFound) {
+			return "", ErrSessionPhotoNotFound
+		}
+		return "", fmt.Errorf("get ready client photo proof key: %w", err)
+	}
+
+	proofURL, err := s.storage.PresignedGetObject(ctx, proofKey, presignedGetTTL)
+	if err != nil {
+		return "", fmt.Errorf("presign proof object: %w", err)
+	}
+
+	return proofURL, nil
 }
