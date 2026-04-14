@@ -25,4 +25,7 @@ func registerClientRouter(
 	mux.Handle("GET /api/client/session/{sessionId}/photos",
 		clientAccess(http.HandlerFunc(clientHandler.GetSessionPhotos)),
 	)
+	mux.Handle("GET /api/client/photos/{photoId}/proof-url",
+		clientAccess(http.HandlerFunc(clientHandler.GetClientPhotoProofURL)),
+	)
 }

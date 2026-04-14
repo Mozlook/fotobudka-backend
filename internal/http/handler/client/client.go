@@ -38,6 +38,11 @@ type ClientSessionResponse struct {
 	Title           string    `json:"title"`
 }
 
+type GetPhotoProofURLResponse struct {
+	PhotoID  uuid.UUID `json:"photo_id"`
+	ProofURL string    `json:"proof_url"`
+}
+
 func (h *Handler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	if token == "" {
@@ -210,6 +215,47 @@ func (h *Handler) GetSessionPhotos(w http.ResponseWriter, r *http.Request) {
 		Offset: int32(offsetCount),
 		Limit:  200,
 	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(payload)
+	if err != nil {
+		return
+	}
+}
+
+func (h *Handler) GetClientPhotoProofURL(w http.ResponseWriter, r *http.Request) {
+	photoIDString := r.PathValue("photoId")
+	if photoIDString == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	photoID, err := uuid.Parse(photoIDString)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	sessionID, ok := middleware.ClientSessionIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	proofUrl, err := h.sessionPhotos.GetReadyClientPhotoProofURL(r.Context(), sessionID, photoID)
+	if err != nil {
+		if errors.Is(err, sessionphotos.ErrSessionPhotoNotFound) {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	payload := GetPhotoProofURLResponse{
+		PhotoID:  photoID,
+		ProofURL: proofUrl,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(payload)
 	if err != nil {
