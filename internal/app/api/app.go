@@ -74,15 +74,16 @@ func Run() error {
 	defer redisClient.Close()
 
 	manager := appauth.NewManager(cfg)
+	clientManager := appauth.NewClientManager(cfg)
 	provider := oauth.New(cfg)
 	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
 	meHandler := me.NewHandler(profilesRepo)
 	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, sessionPhotos, sessionPhotosRepo, cfg.HTTP.FrontendOrigin)
-	clientHandler := client.NewHandler(sessionAccess, redisClient, cfg.Captcha.RecaptchaSecretKey)
+	clientHandler := client.NewHandler(sessionPhotos, sessionAccess, redisClient, cfg.Captcha.RecaptchaSecretKey, clientManager)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
-		Handler:           hrouter.New(log, authHandler, meHandler, sessionsHandler, clientHandler, manager, cfg.HTTP.FrontendOrigin),
+		Handler:           hrouter.New(log, authHandler, meHandler, sessionsHandler, clientHandler, manager, clientManager, sessionsRepo, cfg.HTTP.FrontendOrigin),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/me"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/sessions"
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
+	sessionsrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
 	"github.com/rs/zerolog"
 )
 
@@ -20,6 +21,8 @@ func New(
 	sessionsHandler *sessions.Handler,
 	clientHandler *client.Handler,
 	manager *appauth.Manager,
+	clientManager *appauth.ClientManager,
+	sessionsRepo *sessionsrepo.Repository,
 	frontendOrigin string,
 ) http.Handler {
 	mux := http.NewServeMux()
@@ -29,7 +32,7 @@ func New(
 	registerAuthRoutes(mux, authHandler)
 	registerMeRoutes(mux, meHandler, manager)
 	registerSessionRoutes(mux, sessionsHandler, manager)
-	registerClientRouter(mux, clientHandler)
+	registerClientRouter(mux, clientHandler, clientManager, sessionsRepo)
 
 	var h http.Handler = mux
 	h = middleware.CORS(frontendOrigin, h)

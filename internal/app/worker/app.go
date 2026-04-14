@@ -12,6 +12,7 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/jobs"
 	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
+	"github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
 )
 
 func Run() error {
@@ -47,10 +48,12 @@ func Run() error {
 
 	jobsRepo := jobs.New(q)
 	sessionPhotosRepo := sessionphotosrepo.New(q, pool)
+	sessionsRepo := sessions.New(q)
 
 	worker := jobsworker.New(
 		jobsRepo,
 		sessionPhotosRepo,
+		sessionsRepo,
 		storageClient,
 		10, // limit
 	)
