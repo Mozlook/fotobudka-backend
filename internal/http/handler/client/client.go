@@ -16,7 +16,7 @@ import (
 )
 
 type GetSessionPhotosResponse struct {
-	Items  []sessionphotos.ClientSessionPhotoResponse `json:"items"`
+	Items  []sessionphotos.ClientSessionPhotoListItem `json:"items"`
 	Offset int32                                      `json:"offset"`
 	Limit  int32                                      `json:"limit"`
 }
@@ -179,11 +179,13 @@ func (h *Handler) GetSessionPhotos(w http.ResponseWriter, r *http.Request) {
 	offset := r.URL.Query().Get("offset")
 	offsetCount := 0
 	if offset != "" {
-		offsetCount, err := strconv.Atoi(offset)
+		parsedOffset, err := strconv.Atoi(offset)
 		if err != nil {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
+
+		offsetCount = parsedOffset
 
 		if offsetCount < 0 {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -197,11 +199,20 @@ func (h *Handler) GetSessionPhotos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(photos)
+	photos, err := h.sessionPhotos.ListReadyClientSessionThumbs(r.Context(), sessionID, int32(offsetCount))
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	payload := GetSessionPhotosResponse{
+		Items:  photos,
+		Offset: int32(offsetCount),
+		Limit:  200,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(payload)
+	if err != nil {
 		return
 	}
 }
