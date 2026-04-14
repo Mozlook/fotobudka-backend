@@ -244,3 +244,15 @@ func (r *Repository) ListReadyClientSessionPhotos(ctx context.Context, sessionID
 
 	return photos, nil
 }
+
+func (r *Repository) GetReadyClientPhotoProofKey(ctx context.Context, sessionID, photoID uuid.UUID) (string, error) {
+	proofKey, err := r.sessionPhotosRepo.GetReadyClientPhotoProofKey(ctx, dbgen.GetReadyClientPhotoProofKeyParams{SessionID: sessionID, PhotoID: photoID})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrSessionPhotoNotFound
+		}
+		return "", fmt.Errorf("get ready client photo proof key: %w", err)
+	}
+
+	return *proofKey, nil
+}
