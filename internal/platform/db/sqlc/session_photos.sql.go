@@ -109,6 +109,28 @@ func (q *Queries) GetSessionPhotoStats(ctx context.Context, sessionID uuid.UUID)
 	return i, err
 }
 
+const isReadySessionPhoto = `-- name: IsReadySessionPhoto :one
+SELECT EXISTS (
+    SELECT 1
+    FROM session_photos
+    WHERE id = $1
+      AND session_id = $2
+      AND status = 'ready'
+) AS ok
+`
+
+type IsReadySessionPhotoParams struct {
+	PhotoID   uuid.UUID `db:"photo_id" json:"photo_id"`
+	SessionID uuid.UUID `db:"session_id" json:"session_id"`
+}
+
+func (q *Queries) IsReadySessionPhoto(ctx context.Context, arg IsReadySessionPhotoParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isReadySessionPhoto, arg.PhotoID, arg.SessionID)
+	var ok bool
+	err := row.Scan(&ok)
+	return ok, err
+}
+
 const listReadyClientSessionPhotos = `-- name: ListReadyClientSessionPhotos :many
 SELECT
   sp.id AS photo_id,

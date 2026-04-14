@@ -79,3 +79,12 @@ WHERE id = sqlc.arg(photo_id)
   AND session_id = sqlc.arg(session_id)
   AND status = 'ready'
   AND proof_key IS NOT NULL;
+
+-- name: IsReadySessionPhoto :one
+SELECT EXISTS (
+    SELECT 1
+    FROM session_photos
+    WHERE id = sqlc.arg(photo_id)
+      AND session_id = sqlc.arg(session_id)
+      AND status = 'ready'
+) AS ok;
