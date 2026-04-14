@@ -100,7 +100,7 @@ func (m *ClientManager) SetClientCookie(w http.ResponseWriter, token string, exp
 	cookie := &http.Cookie{
 		Name:     m.cookieName,
 		Value:    token,
-		Path:     "/",
+		Path:     "/api/client",
 		Expires:  expiresAt.UTC(),
 		MaxAge:   int(time.Until(expiresAt).Seconds()),
 		Secure:   m.cookieSecure,
