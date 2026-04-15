@@ -7,6 +7,7 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/client"
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
+	"github.com/Mozlook/fotobudka-backend/internal/selections"
 )
 
 func registerClientRouter(
@@ -14,6 +15,7 @@ func registerClientRouter(
 	clientHandler *client.Handler,
 	clientManager *appauth.ClientManager,
 	sessionsRepo *sessions.Repository,
+	selections *selections.Service,
 ) {
 	clientAccess := func(next http.Handler) http.Handler {
 		return middleware.RequireClientSessionAccess(clientManager, sessionsRepo, next)
@@ -28,4 +30,5 @@ func registerClientRouter(
 	mux.Handle("GET /api/client/photos/{photoId}/proof-url",
 		clientAccess(http.HandlerFunc(clientHandler.GetClientPhotoProofURL)),
 	)
+	mux.Handle("PUT /api/client/session/{sessionId}/selections", clientAccess(http.HandlerFunc(clientHandler.UpdateSelections)))
 }

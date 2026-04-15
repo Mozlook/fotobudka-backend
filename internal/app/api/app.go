@@ -85,7 +85,7 @@ func Run() error {
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
-		Handler:           hrouter.New(log, authHandler, meHandler, sessionsHandler, clientHandler, manager, clientManager, sessionsRepo, cfg.HTTP.FrontendOrigin),
+		Handler:           hrouter.New(log, authHandler, meHandler, sessionsHandler, clientHandler, manager, clientManager, sessionsRepo, cfg.HTTP.FrontendOrigin, selections),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
