@@ -25,6 +25,7 @@ import (
 	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	sessionsrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/users"
+	"github.com/Mozlook/fotobudka-backend/internal/selections"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionaccess"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionphotos"
 )
@@ -67,6 +68,7 @@ func Run() error {
 
 	sessionAccess := sessionaccess.New(pool, sessionsRepo, []byte(cfg.JWT.Secret))
 	sessionPhotos := sessionphotos.New(storageClient, sessionPhotosRepo, pool)
+	selections := selections.New(pool, sessionsRepo)
 	redisClient, err := redis.New(cfg.Redis, cfg.Captcha)
 	if err != nil {
 		return err
@@ -79,7 +81,7 @@ func Run() error {
 	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
 	meHandler := me.NewHandler(profilesRepo)
 	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, sessionPhotos, sessionPhotosRepo, cfg.HTTP.FrontendOrigin)
-	clientHandler := client.NewHandler(sessionPhotos, sessionAccess, redisClient, cfg.Captcha.RecaptchaSecretKey, clientManager)
+	clientHandler := client.NewHandler(sessionPhotos, sessionAccess, redisClient, cfg.Captcha.RecaptchaSecretKey, clientManager, selections)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,

@@ -3,6 +3,7 @@ package selections
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 	"github.com/google/uuid"
@@ -16,10 +17,10 @@ type SelectionItem struct {
 
 func (s *Service) UpdateSelections(ctx context.Context, sessionID uuid.UUID, items []SelectionItem) error {
 	if sessionID == uuid.Nil {
-		return fmt.Errorf("session_id cannot be nil")
+		return ErrInvalidSessionID
 	}
 	if len(items) == 0 {
-		return fmt.Errorf("items cannot be empty")
+		return ErrEmptySelectionItems
 	}
 
 	session, err := s.sessionsRepo.GetSessionByID(ctx, sessionID)
@@ -27,20 +28,17 @@ func (s *Service) UpdateSelections(ctx context.Context, sessionID uuid.UUID, ite
 		return fmt.Errorf("get session by id: %w", err)
 	}
 	if session.Status != "selecting" {
-		return fmt.Errorf("session must have selecting status")
+		return ErrSelectionLocked
 	}
 
 	seen := make(map[uuid.UUID]struct{}, len(items))
-
 	for _, item := range items {
 		if item.PhotoID == uuid.Nil {
-			return fmt.Errorf("photo_id cannot be nil")
+			return ErrInvalidPhotoID
 		}
-
 		if _, exists := seen[item.PhotoID]; exists {
-			return fmt.Errorf("duplicate photo_id in request: %s", item.PhotoID)
+			return fmt.Errorf("%w: %s", ErrDuplicatePhotoInBatch, item.PhotoID)
 		}
-
 		seen[item.PhotoID] = struct{}{}
 	}
 
@@ -63,14 +61,14 @@ func (s *Service) UpdateSelections(ctx context.Context, sessionID uuid.UUID, ite
 			return fmt.Errorf("check ready photo %s: %w", item.PhotoID, err)
 		}
 		if !isReady {
-			return fmt.Errorf("photo %s is not ready or does not belong to session", item.PhotoID)
+			return fmt.Errorf("%w: %s", ErrPhotoNotSelectable, item.PhotoID)
 		}
 
 		if item.Selected {
 			if err := qtx.UpsertSelection(ctx, dbgen.UpsertSelectionParams{
 				SessionID: sessionID,
 				PhotoID:   item.PhotoID,
-				Note:      item.Note,
+				Note:      normalizeNote(item.Note),
 			}); err != nil {
 				return fmt.Errorf("upsert selection for photo %s: %w", item.PhotoID, err)
 			}
@@ -89,4 +87,17 @@ func (s *Service) UpdateSelections(ctx context.Context, sessionID uuid.UUID, ite
 	}
 
 	return nil
+}
+
+func normalizeNote(note *string) *string {
+	if note == nil {
+		return nil
+	}
+
+	trimmed := strings.TrimSpace(*note)
+	if trimmed == "" {
+		return nil
+	}
+
+	return &trimmed
 }

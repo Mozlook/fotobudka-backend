@@ -10,6 +10,7 @@ import (
 
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
 	"github.com/Mozlook/fotobudka-backend/internal/platform/captcha"
+	"github.com/Mozlook/fotobudka-backend/internal/selections"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionaccess"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionphotos"
 	"github.com/google/uuid"
@@ -41,6 +42,16 @@ type ClientSessionResponse struct {
 type GetPhotoProofURLResponse struct {
 	PhotoID  uuid.UUID `json:"photo_id"`
 	ProofURL string    `json:"proof_url"`
+}
+
+type UpdateSelectionItemRequest struct {
+	PhotoID  uuid.UUID `json:"photo_id"`
+	Selected *bool     `json:"selected"`
+	Note     *string   `json:"note,omitempty"`
+}
+
+type UpdateSelectionsRequest struct {
+	Items []UpdateSelectionItemRequest `json:"items"`
 }
 
 func (h *Handler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
@@ -263,5 +274,68 @@ func (h *Handler) GetClientPhotoProofURL(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (*Handler) UpdateSelections(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateSelections(w http.ResponseWriter, r *http.Request) {
+	var request UpdateSelectionsRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+
+	err := dec.Decode(&request)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	if len(request.Items) == 0 {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	sessionID, ok := middleware.ClientSessionIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	validatedItems := make([]selections.SelectionItem, 0, len(request.Items))
+
+	for _, item := range request.Items {
+		if item.PhotoID == uuid.Nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if item.Selected == nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		validatedItems = append(validatedItems, selections.SelectionItem{PhotoID: item.PhotoID, Selected: *item.Selected, Note: item.Note})
+	}
+
+	err = h.selections.UpdateSelections(r.Context(), sessionID, validatedItems)
+	if err != nil {
+		switch {
+		case errors.Is(err, selections.ErrInvalidSessionID),
+			errors.Is(err, selections.ErrEmptySelectionItems),
+			errors.Is(err, selections.ErrInvalidPhotoID),
+			errors.Is(err, selections.ErrDuplicatePhotoInBatch):
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+
+		case errors.Is(err, selections.ErrSelectionLocked):
+			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
+			return
+
+		case errors.Is(err, selections.ErrPhotoNotSelectable):
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+
+		default:
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
