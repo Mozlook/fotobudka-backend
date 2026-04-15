@@ -11,6 +11,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const countSelectionsBySessionID = `-- name: CountSelectionsBySessionID :one
+SELECT COUNT(*)::bigint AS selected_count
+FROM selections
+WHERE session_id = $1
+`
+
+func (q *Queries) CountSelectionsBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countSelectionsBySessionID, sessionID)
+	var selected_count int64
+	err := row.Scan(&selected_count)
+	return selected_count, err
+}
+
 const deleteSelection = `-- name: DeleteSelection :execrows
 DELETE FROM selections
 WHERE session_id = $1
@@ -24,6 +37,104 @@ type DeleteSelectionParams struct {
 
 func (q *Queries) DeleteSelection(ctx context.Context, arg DeleteSelectionParams) (int64, error) {
 	result, err := q.db.Exec(ctx, deleteSelection, arg.SessionID, arg.PhotoID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const getSessionSubmitDataForUpdate = `-- name: GetSessionSubmitDataForUpdate :one
+SELECT
+  id,
+  status,
+  base_price_cents,
+  included_count,
+  extra_price_cents,
+  min_select_count,
+  currency,
+  payment_mode
+FROM sessions
+WHERE id = $1
+FOR UPDATE
+`
+
+type GetSessionSubmitDataForUpdateRow struct {
+	ID              uuid.UUID `db:"id" json:"id"`
+	Status          string    `db:"status" json:"status"`
+	BasePriceCents  int32     `db:"base_price_cents" json:"base_price_cents"`
+	IncludedCount   int32     `db:"included_count" json:"included_count"`
+	ExtraPriceCents int32     `db:"extra_price_cents" json:"extra_price_cents"`
+	MinSelectCount  int32     `db:"min_select_count" json:"min_select_count"`
+	Currency        string    `db:"currency" json:"currency"`
+	PaymentMode     string    `db:"payment_mode" json:"payment_mode"`
+}
+
+func (q *Queries) GetSessionSubmitDataForUpdate(ctx context.Context, id uuid.UUID) (GetSessionSubmitDataForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getSessionSubmitDataForUpdate, id)
+	var i GetSessionSubmitDataForUpdateRow
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.BasePriceCents,
+		&i.IncludedCount,
+		&i.ExtraPriceCents,
+		&i.MinSelectCount,
+		&i.Currency,
+		&i.PaymentMode,
+	)
+	return i, err
+}
+
+const insertSessionPayment = `-- name: InsertSessionPayment :exec
+INSERT INTO payments (
+  id,
+  session_id,
+  method,
+  status,
+  amount_cents,
+  created_at,
+  updated_at
+) VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  now(),
+  now()
+)
+`
+
+type InsertSessionPaymentParams struct {
+	ID          uuid.UUID `db:"id" json:"id"`
+	SessionID   uuid.UUID `db:"session_id" json:"session_id"`
+	Method      string    `db:"method" json:"method"`
+	Status      string    `db:"status" json:"status"`
+	AmountCents int32     `db:"amount_cents" json:"amount_cents"`
+}
+
+func (q *Queries) InsertSessionPayment(ctx context.Context, arg InsertSessionPaymentParams) error {
+	_, err := q.db.Exec(ctx, insertSessionPayment,
+		arg.ID,
+		arg.SessionID,
+		arg.Method,
+		arg.Status,
+		arg.AmountCents,
+	)
+	return err
+}
+
+const markSessionWaitingForPayment = `-- name: MarkSessionWaitingForPayment :execrows
+UPDATE sessions
+SET
+  status = 'waiting_for_payment',
+  updated_at = now()
+WHERE id = $1
+  AND status = 'selecting'
+`
+
+func (q *Queries) MarkSessionWaitingForPayment(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markSessionWaitingForPayment, id)
 	if err != nil {
 		return 0, err
 	}
