@@ -54,6 +54,12 @@ type UpdateSelectionsRequest struct {
 	Items []UpdateSelectionItemRequest `json:"items"`
 }
 
+type SubmitSelectionResponse struct {
+	Status        string `json:"status"`
+	SelectedCount int64  `json:"selected_count"`
+	AmountCents   int32  `json:"amount_cents"`
+}
+
 func (h *Handler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	if token == "" {
@@ -338,4 +344,42 @@ func (h *Handler) UpdateSelections(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) SubmitSelection(w http.ResponseWriter, r *http.Request) {
+	sessionID, ok := middleware.ClientSessionIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	result, err := h.selections.SubmitSelection(r.Context(), sessionID)
+	if err != nil {
+		switch {
+		case errors.Is(err, selections.ErrSessionNotFound):
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		case errors.Is(err, selections.ErrSubmitLocked),
+			errors.Is(err, selections.ErrMinimumSelectionNotMet):
+			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
+			return
+		case errors.Is(err, selections.ErrInvalidSessionID):
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		default:
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	payload := SubmitSelectionResponse{
+		Status:        result.Status,
+		SelectedCount: result.SelectedCount,
+		AmountCents:   result.AmountCents,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		return
+	}
 }
