@@ -31,4 +31,5 @@ func registerClientRouter(
 		clientAccess(http.HandlerFunc(clientHandler.GetClientPhotoProofURL)),
 	)
 	mux.Handle("PUT /api/client/session/{sessionId}/selections", clientAccess(http.HandlerFunc(clientHandler.UpdateSelections)))
+	mux.Handle("POST /api/client/session/{sessionId}/submit", clientAccess(http.HandlerFunc(clientHandler.SubmitSelection)))
 }
