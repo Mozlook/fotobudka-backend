@@ -2,17 +2,25 @@ package selections
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type SelectionItem struct {
 	PhotoID  uuid.UUID
 	Selected bool
 	Note     *string
+}
+
+type SubmitSelectionResult struct {
+	Status        string
+	SelectedCount int64
+	AmountCents   int32
 }
 
 func (s *Service) UpdateSelections(ctx context.Context, sessionID uuid.UUID, items []SelectionItem) error {
@@ -100,4 +108,83 @@ func normalizeNote(note *string) *string {
 	}
 
 	return &trimmed
+}
+
+func (s *Service) SubmitSelection(ctx context.Context, sessionID uuid.UUID) (SubmitSelectionResult, error) {
+	if sessionID == uuid.Nil {
+		return SubmitSelectionResult{}, ErrInvalidSessionID
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return SubmitSelectionResult{}, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	qtx := dbgen.New(tx)
+
+	session, err := qtx.GetSessionSubmitDataForUpdate(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return SubmitSelectionResult{}, ErrSessionNotFound
+		}
+		return SubmitSelectionResult{}, fmt.Errorf("get session submit data for update: %w", err)
+	}
+
+	if session.Status != "selecting" {
+		return SubmitSelectionResult{}, ErrSubmitLocked
+	}
+
+	selectedCount, err := qtx.CountSelectionsBySessionID(ctx, sessionID)
+	if err != nil {
+		return SubmitSelectionResult{}, fmt.Errorf("count selections by session_id: %w", err)
+	}
+
+	if selectedCount < int64(session.MinSelectCount) {
+		return SubmitSelectionResult{}, ErrMinimumSelectionNotMet
+	}
+
+	extraCount := max(0, selectedCount-int64(session.IncludedCount))
+	amount := int64(session.BasePriceCents) + extraCount*int64(session.ExtraPriceCents)
+
+	var method string
+	switch session.PaymentMode {
+	case "manual":
+		method = "manual"
+	case "platform_future":
+		method = "online_future"
+	default:
+		return SubmitSelectionResult{}, fmt.Errorf("unsupported payment mode: %s", session.PaymentMode)
+	}
+
+	err = qtx.InsertSessionPayment(ctx, dbgen.InsertSessionPaymentParams{
+		ID:          uuid.New(),
+		SessionID:   sessionID,
+		Method:      method,
+		Status:      "unpaid",
+		AmountCents: int32(amount),
+	})
+	if err != nil {
+		return SubmitSelectionResult{}, fmt.Errorf("insert session payment: %w", err)
+	}
+
+	rows, err := qtx.MarkSessionWaitingForPayment(ctx, sessionID)
+	if err != nil {
+		return SubmitSelectionResult{}, fmt.Errorf("mark session waiting for payment: %w", err)
+	}
+	if rows != 1 {
+		return SubmitSelectionResult{}, ErrSubmitLocked
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return SubmitSelectionResult{}, fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return SubmitSelectionResult{
+		Status:        "waiting_for_payment",
+		SelectedCount: selectedCount,
+		AmountCents:   int32(amount),
+	}, nil
 }
