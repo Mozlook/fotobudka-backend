@@ -262,3 +262,6 @@ func (h *Handler) GetClientPhotoProofURL(w http.ResponseWriter, r *http.Request)
 		return
 	}
 }
+
+func (*Handler) UpdateSelections(w http.ResponseWriter, r *http.Request) {
+}
