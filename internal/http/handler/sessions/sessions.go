@@ -11,6 +11,7 @@ import (
 
 	"github.com/Mozlook/fotobudka-backend/internal/guard"
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
+	"github.com/Mozlook/fotobudka-backend/internal/payments"
 	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
 	"github.com/google/uuid"
@@ -292,6 +293,57 @@ func (h *Handler) RegenerateSessionAccess(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, _ = w.Write(payload)
+}
+
+func (h *Handler) MarkPaid(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	sessionID, err := uuid.Parse(r.PathValue("sessionId"))
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	err = guard.EnsureSessionOwner(r.Context(), h.sessionsRepo, sessionID, userID)
+	if err != nil {
+		if errors.Is(err, guard.ErrSessionNotAccessible) {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	result, err := h.payments.MarkPaid(r.Context(), sessionID)
+	if err != nil {
+		switch {
+		case errors.Is(err, payments.ErrSessionNotFound):
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		case errors.Is(err, payments.ErrMarkPaidLocked),
+			errors.Is(err, payments.ErrUnpaidPaymentNotFound),
+			errors.Is(err, payments.ErrPaymentMarkPaidConflict),
+			errors.Is(err, payments.ErrSessionEditingTransitionFailed):
+			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
+			return
+		default:
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	payload, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write(payload)
