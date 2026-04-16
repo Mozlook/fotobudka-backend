@@ -112,6 +112,27 @@ func (q *Queries) GetSessionOwnerByID(ctx context.Context, id uuid.UUID) (GetSes
 	return i, err
 }
 
+const getSessionStatusForUpdate = `-- name: GetSessionStatusForUpdate :one
+SELECT
+  id,
+  status
+FROM sessions
+WHERE id = $1
+FOR UPDATE
+`
+
+type GetSessionStatusForUpdateRow struct {
+	ID     uuid.UUID `db:"id" json:"id"`
+	Status string    `db:"status" json:"status"`
+}
+
+func (q *Queries) GetSessionStatusForUpdate(ctx context.Context, id uuid.UUID) (GetSessionStatusForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getSessionStatusForUpdate, id)
+	var i GetSessionStatusForUpdateRow
+	err := row.Scan(&i.ID, &i.Status)
+	return i, err
+}
+
 const getSessions = `-- name: GetSessions :many
 SELECT 
   id,
@@ -241,6 +262,23 @@ func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (I
 	var i InsertSessionRow
 	err := row.Scan(&i.ID, &i.Status)
 	return i, err
+}
+
+const markSessionEditing = `-- name: MarkSessionEditing :execrows
+UPDATE sessions
+SET
+  status = 'editing',
+  updated_at = now()
+WHERE id = $1
+  AND status = 'waiting_for_payment'
+`
+
+func (q *Queries) MarkSessionEditing(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markSessionEditing, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const markSessionFailed = `-- name: MarkSessionFailed :execrows

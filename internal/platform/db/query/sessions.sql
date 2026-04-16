@@ -114,3 +114,19 @@ SET
     updated_at = now()
 WHERE id = sqlc.arg(id)
   AND status IN ('draft', 'processing');
+
+-- name: GetSessionStatusForUpdate :one
+SELECT
+  id,
+  status
+FROM sessions
+WHERE id = sqlc.arg(id)
+FOR UPDATE;
+
+-- name: MarkSessionEditing :execrows
+UPDATE sessions
+SET
+  status = 'editing',
+  updated_at = now()
+WHERE id = sqlc.arg(id)
+  AND status = 'waiting_for_payment';
