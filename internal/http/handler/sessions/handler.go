@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"github.com/Mozlook/fotobudka-backend/internal/finalphotos"
 	"github.com/Mozlook/fotobudka-backend/internal/payments"
 	sessionsphotorepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	sessionsrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
@@ -14,6 +15,7 @@ type Handler struct {
 	sessionAccess     *sessionaccess.Service
 	sessionPhotos     *sessionphotos.Service
 	sessionsPhotoRepo *sessionsphotorepo.Repository
+	finalPhotos       *finalphotos.Service
 	payments          *payments.Service
 	frontendOrigin    string
 }
@@ -24,6 +26,7 @@ func NewHandler(
 	sessionAccess *sessionaccess.Service,
 	sessionPhotos *sessionphotos.Service,
 	sessionsPhotoRepo *sessionsphotorepo.Repository,
+	finalPhotos *finalphotos.Service,
 	payments *payments.Service,
 	frontendOrigin string,
 ) *Handler {
@@ -32,6 +35,7 @@ func NewHandler(
 		sessionAccess:     sessionAccess,
 		sessionPhotos:     sessionPhotos,
 		sessionsPhotoRepo: sessionsPhotoRepo,
+		finalPhotos:       finalPhotos,
 		payments:          payments,
 		frontendOrigin:    frontendOrigin,
 	}
