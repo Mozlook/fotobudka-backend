@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func sourceExtFromMIME(mimeType string) (string, bool) {
+func SourceExtFromMIME(mimeType string) (string, bool) {
 	switch strings.ToLower(strings.TrimSpace(mimeType)) {
 	case "image/jpeg", "image/jpg":
 		return ".jpg", true

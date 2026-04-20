@@ -25,7 +25,7 @@ func (s *Service) presignUploadURLs(ctx context.Context, sessionID string, files
 			continue
 		}
 
-		ext, ok := sourceExtFromMIME(file.MimeType)
+		ext, ok := SourceExtFromMIME(file.MimeType)
 		if !ok {
 			output[i] = PhotoPutURL{Error: true}
 			continue
