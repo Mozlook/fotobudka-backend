@@ -17,4 +17,5 @@ func registerSessionRoutes(mux *http.ServeMux, sessionsHandler *sessions.Handler
 	mux.Handle("POST /api/sessions/{sessionId}/photos/presign", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.PhotosPresign)))
 	mux.Handle("POST /api/sessions/{sessionId}/photos/{photoId}/complete", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.PhotosComplete)))
 	mux.Handle("POST /api/sessions/{sessionId}/payment/mark-paid", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.MarkPaid)))
+	mux.Handle("POST /api.sessions/{sessionId}/payment/finals/presign", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.PresignFinals)))
 }
