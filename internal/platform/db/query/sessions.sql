@@ -130,3 +130,11 @@ SET
   updated_at = now()
 WHERE id = sqlc.arg(id)
   AND status = 'waiting_for_payment';
+
+-- name: IsSelectedSessionPhoto :one
+SELECT EXISTS (
+  SELECT 1
+  FROM selections
+  WHERE session_id = sqlc.arg(session_id)
+    AND photo_id = sqlc.arg(photo_id)
+) AS ok;

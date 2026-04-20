@@ -264,6 +264,27 @@ func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (I
 	return i, err
 }
 
+const isSelectedSessionPhoto = `-- name: IsSelectedSessionPhoto :one
+SELECT EXISTS (
+  SELECT 1
+  FROM selections
+  WHERE session_id = $1
+    AND photo_id = $2
+) AS ok
+`
+
+type IsSelectedSessionPhotoParams struct {
+	SessionID uuid.UUID `db:"session_id" json:"session_id"`
+	PhotoID   uuid.UUID `db:"photo_id" json:"photo_id"`
+}
+
+func (q *Queries) IsSelectedSessionPhoto(ctx context.Context, arg IsSelectedSessionPhotoParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isSelectedSessionPhoto, arg.SessionID, arg.PhotoID)
+	var ok bool
+	err := row.Scan(&ok)
+	return ok, err
+}
+
 const markSessionEditing = `-- name: MarkSessionEditing :execrows
 UPDATE sessions
 SET
