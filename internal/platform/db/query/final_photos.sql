@@ -22,3 +22,20 @@ INSERT INTO final_photos (
   sqlc.arg(final_size_bytes),
   now()
 );
+
+-- name: GetFinalPhotoByIDAndSessionID :one
+SELECT
+  id,
+  session_id,
+  photo_id,
+  final_key,
+  final_size_bytes
+FROM final_photos
+WHERE id = sqlc.arg(id)
+  AND session_id = sqlc.arg(session_id);
+
+-- name: UpdateFinalPhotoSize :execrows
+UPDATE final_photos
+SET final_size_bytes = sqlc.arg(final_size_bytes)
+WHERE id = sqlc.arg(id)
+  AND session_id = sqlc.arg(session_id);

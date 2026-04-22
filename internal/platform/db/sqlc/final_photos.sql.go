@@ -11,6 +11,44 @@ import (
 	"github.com/google/uuid"
 )
 
+const getFinalPhotoByIDAndSessionID = `-- name: GetFinalPhotoByIDAndSessionID :one
+SELECT
+  id,
+  session_id,
+  photo_id,
+  final_key,
+  final_size_bytes
+FROM final_photos
+WHERE id = $1
+  AND session_id = $2
+`
+
+type GetFinalPhotoByIDAndSessionIDParams struct {
+	ID        uuid.UUID `db:"id" json:"id"`
+	SessionID uuid.UUID `db:"session_id" json:"session_id"`
+}
+
+type GetFinalPhotoByIDAndSessionIDRow struct {
+	ID             uuid.UUID `db:"id" json:"id"`
+	SessionID      uuid.UUID `db:"session_id" json:"session_id"`
+	PhotoID        uuid.UUID `db:"photo_id" json:"photo_id"`
+	FinalKey       string    `db:"final_key" json:"final_key"`
+	FinalSizeBytes *int64    `db:"final_size_bytes" json:"final_size_bytes"`
+}
+
+func (q *Queries) GetFinalPhotoByIDAndSessionID(ctx context.Context, arg GetFinalPhotoByIDAndSessionIDParams) (GetFinalPhotoByIDAndSessionIDRow, error) {
+	row := q.db.QueryRow(ctx, getFinalPhotoByIDAndSessionID, arg.ID, arg.SessionID)
+	var i GetFinalPhotoByIDAndSessionIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.SessionID,
+		&i.PhotoID,
+		&i.FinalKey,
+		&i.FinalSizeBytes,
+	)
+	return i, err
+}
+
 const hasFinalPhotoForSessionPhoto = `-- name: HasFinalPhotoForSessionPhoto :one
 SELECT EXISTS (
   SELECT 1
@@ -67,4 +105,25 @@ func (q *Queries) InsertFinalPhoto(ctx context.Context, arg InsertFinalPhotoPara
 		arg.FinalSizeBytes,
 	)
 	return err
+}
+
+const updateFinalPhotoSize = `-- name: UpdateFinalPhotoSize :execrows
+UPDATE final_photos
+SET final_size_bytes = $1
+WHERE id = $2
+  AND session_id = $3
+`
+
+type UpdateFinalPhotoSizeParams struct {
+	FinalSizeBytes *int64    `db:"final_size_bytes" json:"final_size_bytes"`
+	ID             uuid.UUID `db:"id" json:"id"`
+	SessionID      uuid.UUID `db:"session_id" json:"session_id"`
+}
+
+func (q *Queries) UpdateFinalPhotoSize(ctx context.Context, arg UpdateFinalPhotoSizeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateFinalPhotoSize, arg.FinalSizeBytes, arg.ID, arg.SessionID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
