@@ -11,6 +11,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const countFinalPhotosBySessionID = `-- name: CountFinalPhotosBySessionID :one
+SELECT COUNT(*)::bigint
+FROM final_photos
+WHERE session_id = $1
+`
+
+func (q *Queries) CountFinalPhotosBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countFinalPhotosBySessionID, sessionID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const getFinalPhotoByIDAndSessionID = `-- name: GetFinalPhotoByIDAndSessionID :one
 SELECT
   id,
