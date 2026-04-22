@@ -39,3 +39,8 @@ UPDATE final_photos
 SET final_size_bytes = sqlc.arg(final_size_bytes)
 WHERE id = sqlc.arg(id)
   AND session_id = sqlc.arg(session_id);
+
+-- name: CountFinalPhotosBySessionID :one
+SELECT COUNT(*)::bigint
+FROM final_photos
+WHERE session_id = sqlc.arg(session_id);
