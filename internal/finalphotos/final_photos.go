@@ -8,6 +8,7 @@ import (
 	"time"
 
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
+	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionphotos"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -141,4 +142,77 @@ func (s *Service) PrepareFinalPhotoUploads(ctx context.Context, sessionID uuid.U
 	}
 
 	return finalURLList, nil
+}
+
+func (s *Service) CompleteFinalPhotoUpload(ctx context.Context, sessionID, finalID uuid.UUID) error {
+	if sessionID == uuid.Nil {
+		return ErrInvalidSessionID
+	}
+	if finalID == uuid.Nil {
+		return ErrInvalidFinalID
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	qtx := dbgen.New(tx)
+
+	session, err := qtx.GetSessionStatusForUpdate(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrSessionNotFound
+		}
+		return fmt.Errorf("get session status for update: %w", err)
+	}
+
+	if session.Status != "editing" {
+		return ErrFinalUploadLocked
+	}
+
+	finalPhoto, err := qtx.GetFinalPhotoByIDAndSessionID(ctx, dbgen.GetFinalPhotoByIDAndSessionIDParams{
+		ID:        finalID,
+		SessionID: sessionID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrFinalPhotoNotFound
+		}
+		return fmt.Errorf("get final photo by id and session id: %w", err)
+	}
+
+	if finalPhoto.FinalKey == "" {
+		return fmt.Errorf("final key is empty")
+	}
+
+	object, err := s.storage.StatObject(ctx, finalPhoto.FinalKey)
+	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotFound) {
+			return ErrUploadedObjectNotFound
+		}
+		return fmt.Errorf("stat final object: %w", err)
+	}
+
+	size := object.Size
+	rows, err := qtx.UpdateFinalPhotoSize(ctx, dbgen.UpdateFinalPhotoSizeParams{
+		ID:             finalID,
+		SessionID:      sessionID,
+		FinalSizeBytes: &size,
+	})
+	if err != nil {
+		return fmt.Errorf("update final photo size: %w", err)
+	}
+	if rows != 1 {
+		return fmt.Errorf("update final photo size: unexpected affected rows: %d", rows)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return nil
 }
