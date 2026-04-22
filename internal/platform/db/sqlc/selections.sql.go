@@ -11,6 +11,23 @@ import (
 	"github.com/google/uuid"
 )
 
+const countSelectedPhotosWithoutFinal = `-- name: CountSelectedPhotosWithoutFinal :one
+SELECT COUNT(*)::bigint
+FROM selections s
+LEFT JOIN final_photos fp
+  ON fp.session_id = s.session_id
+ AND fp.photo_id = s.photo_id
+WHERE s.session_id = $1
+  AND fp.id IS NULL
+`
+
+func (q *Queries) CountSelectedPhotosWithoutFinal(ctx context.Context, sessionID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countSelectedPhotosWithoutFinal, sessionID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countSelectionsBySessionID = `-- name: CountSelectionsBySessionID :one
 SELECT COUNT(*)::bigint AS selected_count
 FROM selections

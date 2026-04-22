@@ -64,3 +64,12 @@ SET
   updated_at = now()
 WHERE id = sqlc.arg(id)
   AND status = 'selecting';
+
+-- name: CountSelectedPhotosWithoutFinal :one
+SELECT COUNT(*)::bigint
+FROM selections s
+LEFT JOIN final_photos fp
+  ON fp.session_id = s.session_id
+ AND fp.photo_id = s.photo_id
+WHERE s.session_id = sqlc.arg(session_id)
+  AND fp.id IS NULL;
