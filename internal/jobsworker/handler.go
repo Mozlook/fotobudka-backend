@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Mozlook/fotobudka-backend/internal/deliveries"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/jobs"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionphotos"
 )
@@ -16,6 +17,12 @@ func (w *Worker) handleJob(ctx context.Context, job jobs.Job) error {
 	case sessionphotos.JobTypeGenerateSessionPhotoVariants:
 		if err := w.handleGenerateSessionPhotoVariants(ctx, job); err != nil {
 			return fmt.Errorf("generate session photo variants: %w", err)
+		}
+		return nil
+
+	case deliveries.JobTypeGenerateDeliveryZIP:
+		if err := w.handleGenerateDeliveryZIP(ctx, job); err != nil {
+			return fmt.Errorf("generate delivery zip: %w", err)
 		}
 		return nil
 

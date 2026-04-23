@@ -49,11 +49,13 @@ func Run() error {
 	jobsRepo := jobs.New(q)
 	sessionPhotosRepo := sessionphotosrepo.New(q, pool)
 	sessionsRepo := sessions.New(q)
-
+	deliveriesRepo := deli
 	worker := jobsworker.New(
 		jobsRepo,
 		sessionPhotosRepo,
 		sessionsRepo,
+		deliveriesRepo,
+		finalphotosRepo,
 		storageClient,
 		10, // limit
 	)

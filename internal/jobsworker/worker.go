@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
+	"github.com/Mozlook/fotobudka-backend/internal/repository/deliveries"
+	finalphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/finalphotos"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/jobs"
 	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
@@ -18,6 +20,8 @@ type Worker struct {
 	jobsRepo          *jobs.Repository
 	sessionPhotosRepo *sessionphotosrepo.Repository
 	sessionsRepo      *sessions.Repository
+	deliveriesRepo    *deliveries.Repository
+	finalPhotosRepo   *finalphotosrepo.Repository
 	storage           *storage.Client
 	limit             int32
 }
@@ -26,6 +30,8 @@ func New(
 	jobsRepo *jobs.Repository,
 	sessionphotosRepo *sessionphotosrepo.Repository,
 	sessionsRepo *sessions.Repository,
+	deliveriesRepo *deliveries.Repository,
+	finalPhotosRepo *finalphotosrepo.Repository,
 	storage *storage.Client,
 	limit int32,
 ) *Worker {
@@ -37,6 +43,8 @@ func New(
 		jobsRepo:          jobsRepo,
 		sessionPhotosRepo: sessionphotosRepo,
 		sessionsRepo:      sessionsRepo,
+		deliveriesRepo:    deliveriesRepo,
+		finalPhotosRepo:   finalPhotosRepo,
 		storage:           storage,
 		limit:             limit,
 	}
