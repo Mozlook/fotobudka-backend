@@ -44,3 +44,16 @@ WHERE id = sqlc.arg(id)
 SELECT COUNT(*)::bigint
 FROM final_photos
 WHERE session_id = sqlc.arg(session_id);
+
+-- name: ListFinalPhotosForDelivery :many
+SELECT
+  fp.id,
+  fp.photo_id,
+  fp.final_key,
+  sp.original_filename
+FROM final_photos fp
+JOIN session_photos sp
+  ON sp.id = fp.photo_id
+ AND sp.session_id = fp.session_id
+WHERE fp.session_id = sqlc.arg(session_id)
+ORDER BY fp.created_at, fp.id;

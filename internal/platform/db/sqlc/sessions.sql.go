@@ -285,6 +285,23 @@ func (q *Queries) IsSelectedSessionPhoto(ctx context.Context, arg IsSelectedSess
 	return ok, err
 }
 
+const markSessionDelivered = `-- name: MarkSessionDelivered :execrows
+UPDATE sessions
+SET
+  status = 'delivered',
+  updated_at = now()
+WHERE id = $1
+  AND status IN ('editing', 'delivered')
+`
+
+func (q *Queries) MarkSessionDelivered(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markSessionDelivered, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const markSessionEditing = `-- name: MarkSessionEditing :execrows
 UPDATE sessions
 SET

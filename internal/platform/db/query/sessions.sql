@@ -138,3 +138,11 @@ SELECT EXISTS (
   WHERE session_id = sqlc.arg(session_id)
     AND photo_id = sqlc.arg(photo_id)
 ) AS ok;
+
+-- name: MarkSessionDelivered :execrows
+UPDATE sessions
+SET
+  status = 'delivered',
+  updated_at = now()
+WHERE id = sqlc.arg(id)
+  AND status IN ('editing', 'delivered');

@@ -11,6 +11,36 @@ import (
 	"github.com/google/uuid"
 )
 
+const getDeliveryByID = `-- name: GetDeliveryByID :one
+SELECT
+  id,
+  session_id,
+  version,
+  status,
+  zip_key,
+  zip_size_bytes,
+  created_at,
+  generated_at
+FROM deliveries
+WHERE id = $1
+`
+
+func (q *Queries) GetDeliveryByID(ctx context.Context, id uuid.UUID) (Delivery, error) {
+	row := q.db.QueryRow(ctx, getDeliveryByID, id)
+	var i Delivery
+	err := row.Scan(
+		&i.ID,
+		&i.SessionID,
+		&i.Version,
+		&i.Status,
+		&i.ZipKey,
+		&i.ZipSizeBytes,
+		&i.CreatedAt,
+		&i.GeneratedAt,
+	)
+	return i, err
+}
+
 const getNextDeliveryVersionForSession = `-- name: GetNextDeliveryVersionForSession :one
 SELECT COALESCE(MAX(version), 0)::bigint + 1 AS next_version
 FROM deliveries
@@ -55,4 +85,45 @@ func (q *Queries) InsertDelivery(ctx context.Context, arg InsertDeliveryParams) 
 		arg.Status,
 	)
 	return err
+}
+
+const markDeliveryFailed = `-- name: MarkDeliveryFailed :execrows
+UPDATE deliveries
+SET
+  status = 'failed'
+WHERE id = $1
+  AND status = 'generating'
+`
+
+func (q *Queries) MarkDeliveryFailed(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markDeliveryFailed, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const markDeliveryReady = `-- name: MarkDeliveryReady :execrows
+UPDATE deliveries
+SET
+  status = 'ready',
+  zip_key = $1,
+  zip_size_bytes = $2,
+  generated_at = now()
+WHERE id = $3
+  AND status = 'generating'
+`
+
+type MarkDeliveryReadyParams struct {
+	ZipKey       *string   `db:"zip_key" json:"zip_key"`
+	ZipSizeBytes *int64    `db:"zip_size_bytes" json:"zip_size_bytes"`
+	ID           uuid.UUID `db:"id" json:"id"`
+}
+
+func (q *Queries) MarkDeliveryReady(ctx context.Context, arg MarkDeliveryReadyParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markDeliveryReady, arg.ZipKey, arg.ZipSizeBytes, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

@@ -17,3 +17,33 @@ INSERT INTO deliveries (
   sqlc.arg(status),
   now()
 );
+
+-- name: GetDeliveryByID :one
+SELECT
+  id,
+  session_id,
+  version,
+  status,
+  zip_key,
+  zip_size_bytes,
+  created_at,
+  generated_at
+FROM deliveries
+WHERE id = sqlc.arg(id);
+
+-- name: MarkDeliveryReady :execrows
+UPDATE deliveries
+SET
+  status = 'ready',
+  zip_key = sqlc.arg(zip_key),
+  zip_size_bytes = sqlc.arg(zip_size_bytes),
+  generated_at = now()
+WHERE id = sqlc.arg(id)
+  AND status = 'generating';
+
+-- name: MarkDeliveryFailed :execrows
+UPDATE deliveries
+SET
+  status = 'failed'
+WHERE id = sqlc.arg(id)
+  AND status = 'generating';

@@ -120,6 +120,52 @@ func (q *Queries) InsertFinalPhoto(ctx context.Context, arg InsertFinalPhotoPara
 	return err
 }
 
+const listFinalPhotosForDelivery = `-- name: ListFinalPhotosForDelivery :many
+SELECT
+  fp.id,
+  fp.photo_id,
+  fp.final_key,
+  sp.original_filename
+FROM final_photos fp
+JOIN session_photos sp
+  ON sp.id = fp.photo_id
+ AND sp.session_id = fp.session_id
+WHERE fp.session_id = $1
+ORDER BY fp.created_at, fp.id
+`
+
+type ListFinalPhotosForDeliveryRow struct {
+	ID               uuid.UUID `db:"id" json:"id"`
+	PhotoID          uuid.UUID `db:"photo_id" json:"photo_id"`
+	FinalKey         string    `db:"final_key" json:"final_key"`
+	OriginalFilename string    `db:"original_filename" json:"original_filename"`
+}
+
+func (q *Queries) ListFinalPhotosForDelivery(ctx context.Context, sessionID uuid.UUID) ([]ListFinalPhotosForDeliveryRow, error) {
+	rows, err := q.db.Query(ctx, listFinalPhotosForDelivery, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListFinalPhotosForDeliveryRow{}
+	for rows.Next() {
+		var i ListFinalPhotosForDeliveryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.PhotoID,
+			&i.FinalKey,
+			&i.OriginalFilename,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateFinalPhotoSize = `-- name: UpdateFinalPhotoSize :execrows
 UPDATE final_photos
 SET final_size_bytes = $1
