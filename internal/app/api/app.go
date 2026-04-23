@@ -10,6 +10,7 @@ import (
 
 	appauth "github.com/Mozlook/fotobudka-backend/internal/auth"
 	"github.com/Mozlook/fotobudka-backend/internal/config"
+	"github.com/Mozlook/fotobudka-backend/internal/deliveries"
 	"github.com/Mozlook/fotobudka-backend/internal/finalphotos"
 	auth "github.com/Mozlook/fotobudka-backend/internal/http/handler/auth"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/client"
@@ -73,6 +74,7 @@ func Run() error {
 	selections := selections.New(pool, sessionsRepo)
 	finalPhotos := finalphotos.New(storageClient, pool)
 	payments := payments.New(pool)
+	deliveries := deliveries.New(pool)
 	redisClient, err := redis.New(cfg.Redis, cfg.Captcha)
 	if err != nil {
 		return err
@@ -84,7 +86,7 @@ func Run() error {
 	provider := oauth.New(cfg)
 	authHandler := auth.NewAuthHandler(cfg, provider, usersRepo, manager)
 	meHandler := me.NewHandler(profilesRepo)
-	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, sessionPhotos, sessionPhotosRepo, finalPhotos, payments, cfg.HTTP.FrontendOrigin)
+	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, sessionPhotos, deliveries, sessionPhotosRepo, finalPhotos, payments, cfg.HTTP.FrontendOrigin)
 	clientHandler := client.NewHandler(sessionPhotos, sessionAccess, redisClient, cfg.Captcha.RecaptchaSecretKey, clientManager, selections)
 
 	srv := &http.Server{
