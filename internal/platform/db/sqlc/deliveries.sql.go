@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -36,6 +37,44 @@ func (q *Queries) GetDeliveryByID(ctx context.Context, id uuid.UUID) (Delivery, 
 		&i.ZipKey,
 		&i.ZipSizeBytes,
 		&i.CreatedAt,
+		&i.GeneratedAt,
+	)
+	return i, err
+}
+
+const getLatestReadyDeliveryBySessionID = `-- name: GetLatestReadyDeliveryBySessionID :one
+SELECT
+  id,
+  session_id,
+  version,
+  zip_key,
+  zip_size_bytes,
+  generated_at
+FROM deliveries
+WHERE session_id = $1
+  AND status = 'ready'
+ORDER BY version DESC
+LIMIT 1
+`
+
+type GetLatestReadyDeliveryBySessionIDRow struct {
+	ID           uuid.UUID  `db:"id" json:"id"`
+	SessionID    uuid.UUID  `db:"session_id" json:"session_id"`
+	Version      int32      `db:"version" json:"version"`
+	ZipKey       *string    `db:"zip_key" json:"zip_key"`
+	ZipSizeBytes *int64     `db:"zip_size_bytes" json:"zip_size_bytes"`
+	GeneratedAt  *time.Time `db:"generated_at" json:"generated_at"`
+}
+
+func (q *Queries) GetLatestReadyDeliveryBySessionID(ctx context.Context, sessionID uuid.UUID) (GetLatestReadyDeliveryBySessionIDRow, error) {
+	row := q.db.QueryRow(ctx, getLatestReadyDeliveryBySessionID, sessionID)
+	var i GetLatestReadyDeliveryBySessionIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.SessionID,
+		&i.Version,
+		&i.ZipKey,
+		&i.ZipSizeBytes,
 		&i.GeneratedAt,
 	)
 	return i, err

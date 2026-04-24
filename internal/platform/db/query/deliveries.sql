@@ -47,3 +47,17 @@ SET
   status = 'failed'
 WHERE id = sqlc.arg(id)
   AND status = 'generating';
+
+-- name: GetLatestReadyDeliveryBySessionID :one
+SELECT
+  id,
+  session_id,
+  version,
+  zip_key,
+  zip_size_bytes,
+  generated_at
+FROM deliveries
+WHERE session_id = sqlc.arg(session_id)
+  AND status = 'ready'
+ORDER BY version DESC
+LIMIT 1;
