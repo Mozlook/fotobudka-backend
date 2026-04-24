@@ -108,3 +108,26 @@ func (r *Repository) MarkDeliveryReadyAndSessionDelivered(
 
 	return nil
 }
+
+func (r *Repository) GetLatestReadyDeliveryBySessionID(ctx context.Context, sessionID uuid.UUID) (LatestReadyDelivery, error) {
+	row, err := r.q.GetLatestReadyDeliveryBySessionID(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return LatestReadyDelivery{}, ErrLatestReadyDeliveryNotFound
+		}
+		return LatestReadyDelivery{}, fmt.Errorf("get latest ready delivery by session id: %w", err)
+	}
+
+	if row.ZipKey == nil || *row.ZipKey == "" {
+		return LatestReadyDelivery{}, fmt.Errorf("latest ready delivery zip key is empty")
+	}
+
+	return LatestReadyDelivery{
+		ID:           row.ID,
+		SessionID:    row.SessionID,
+		Version:      row.Version,
+		ZipKey:       *row.ZipKey,
+		ZipSizeBytes: row.ZipSizeBytes,
+		GeneratedAt:  row.GeneratedAt,
+	}, nil
+}
