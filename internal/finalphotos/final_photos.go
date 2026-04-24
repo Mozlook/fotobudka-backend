@@ -77,7 +77,7 @@ func (s *Service) PrepareFinalPhotoUploads(ctx context.Context, sessionID uuid.U
 		return nil, fmt.Errorf("get session status for update: %w", err)
 	}
 
-	if sessionStatus.Status != "editing" {
+	if !AllowsFinalEditingOrDeliveryGeneration(sessionStatus.Status) {
 		return nil, ErrFinalUploadLocked
 	}
 
@@ -117,6 +117,9 @@ func (s *Service) PrepareFinalPhotoUploads(ctx context.Context, sessionID uuid.U
 		putURL, err := s.storage.PresignedPutObject(ctx, objectKey, presignedPutTTL)
 		if err != nil {
 			return nil, fmt.Errorf("presign put object for photo %s: %w", file.PhotoID, err)
+		}
+		if putURL == nil {
+			return nil, fmt.Errorf("presigned put url is nil")
 		}
 
 		if err := qtx.InsertFinalPhoto(ctx, dbgen.InsertFinalPhotoParams{
@@ -170,7 +173,7 @@ func (s *Service) CompleteFinalPhotoUpload(ctx context.Context, sessionID, final
 		return fmt.Errorf("get session status for update: %w", err)
 	}
 
-	if session.Status != "editing" {
+	if !AllowsFinalEditingOrDeliveryGeneration(session.Status) {
 		return ErrFinalUploadLocked
 	}
 

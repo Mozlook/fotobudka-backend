@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Mozlook/fotobudka-backend/internal/finalphotos"
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -47,7 +48,7 @@ func (s *Service) GenerateZIP(ctx context.Context, sessionID uuid.UUID) (Generat
 		return GenerateZIPResult{}, fmt.Errorf("get session status for update: %w", err)
 	}
 
-	if session.Status != "editing" {
+	if !finalphotos.AllowsFinalEditingOrDeliveryGeneration(session.Status) {
 		return GenerateZIPResult{}, ErrGenerateZIPLocked
 	}
 

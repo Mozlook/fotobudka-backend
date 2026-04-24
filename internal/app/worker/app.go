@@ -10,6 +10,8 @@ import (
 	dbgen "github.com/Mozlook/fotobudka-backend/internal/platform/db/sqlc"
 	applog "github.com/Mozlook/fotobudka-backend/internal/platform/logger"
 	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
+	"github.com/Mozlook/fotobudka-backend/internal/repository/deliveries"
+	finalphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/finalphotos"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/jobs"
 	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
@@ -49,7 +51,8 @@ func Run() error {
 	jobsRepo := jobs.New(q)
 	sessionPhotosRepo := sessionphotosrepo.New(q, pool)
 	sessionsRepo := sessions.New(q)
-	deliveriesRepo := deli
+	deliveriesRepo := deliveries.New(q, pool)
+	finalphotosRepo := finalphotosrepo.New(q)
 	worker := jobsworker.New(
 		jobsRepo,
 		sessionPhotosRepo,
