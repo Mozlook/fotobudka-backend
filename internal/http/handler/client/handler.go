@@ -2,6 +2,7 @@ package client
 
 import (
 	appauth "github.com/Mozlook/fotobudka-backend/internal/auth"
+	"github.com/Mozlook/fotobudka-backend/internal/deliveries"
 	"github.com/Mozlook/fotobudka-backend/internal/platform/redis"
 	"github.com/Mozlook/fotobudka-backend/internal/selections"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionaccess"
@@ -12,6 +13,7 @@ import (
 type Handler struct {
 	sessionPhotos      *sessionphotos.Service
 	sessionAccess      *sessionaccess.Service
+	deliveries         *deliveries.Service
 	redis              *redis.Client
 	recaptchaSecretKey string
 	clientManager      *appauth.ClientManager
@@ -22,6 +24,7 @@ type Handler struct {
 func NewHandler(
 	sessionPhotos *sessionphotos.Service,
 	sessionAccess *sessionaccess.Service,
+	deliveries *deliveries.Service,
 	redis *redis.Client,
 	recaptchaSecretKey string,
 	clientManager *appauth.ClientManager,
@@ -30,6 +33,7 @@ func NewHandler(
 	return &Handler{
 		sessionPhotos:      sessionPhotos,
 		sessionAccess:      sessionAccess,
+		deliveries:         deliveries,
 		redis:              redis,
 		recaptchaSecretKey: recaptchaSecretKey,
 		clientManager:      clientManager,
