@@ -20,4 +20,5 @@ func registerSessionRoutes(mux *http.ServeMux, sessionsHandler *sessions.Handler
 	mux.Handle("POST /api/sessions/{sessionId}/finals/presign", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.PresignFinals)))
 	mux.Handle("POST /api/sessions/{sessionId}/finals/{finalId}/complete", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.CompleteFinalPhotoUpload)))
 	mux.Handle("POST /api/sessions/{sessionId}/deliveries/generate-zip", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.GenerateZIP)))
+	mux.Handle("GET /api/sessions/{sessionId}/selections", middleware.RequireAuth(manager, http.HandlerFunc(sessionsHandler.GetSessionSelections)))
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/deliveries"
 	"github.com/Mozlook/fotobudka-backend/internal/finalphotos"
 	"github.com/Mozlook/fotobudka-backend/internal/payments"
+	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
 	sessionsphotorepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	sessionsrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
 	"github.com/Mozlook/fotobudka-backend/internal/sessionaccess"
@@ -19,6 +20,7 @@ type Handler struct {
 	sessionsPhotoRepo *sessionsphotorepo.Repository
 	finalPhotos       *finalphotos.Service
 	payments          *payments.Service
+	storage           *storage.Client
 	frontendOrigin    string
 }
 
@@ -31,6 +33,7 @@ func NewHandler(
 	sessionsPhotoRepo *sessionsphotorepo.Repository,
 	finalPhotos *finalphotos.Service,
 	payments *payments.Service,
+	storage *storage.Client,
 	frontendOrigin string,
 ) *Handler {
 	return &Handler{
@@ -41,6 +44,7 @@ func NewHandler(
 		sessionsPhotoRepo: sessionsPhotoRepo,
 		finalPhotos:       finalPhotos,
 		payments:          payments,
+		storage:           storage,
 		frontendOrigin:    frontendOrigin,
 	}
 }
