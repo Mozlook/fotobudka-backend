@@ -49,8 +49,8 @@ func (h *Handler) ListGalleries(w http.ResponseWriter, r *http.Request) {
 	for _, gallery := range galleries {
 		coverURL := ""
 
-		if gallery.CoverImageKey != nil && *gallery.CoverImageKey != "" {
-			signedURL, err := h.storage.PresignedGetObject(ctx, *gallery.CoverImageKey, presignedDownloadTTL)
+		if gallery.CoverImageKey != "" {
+			signedURL, err := h.storage.PresignedGetObject(ctx, gallery.CoverImageKey, presignedDownloadTTL)
 			if err != nil {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
@@ -220,8 +220,8 @@ func (h *Handler) GetGallery(w http.ResponseWriter, r *http.Request) {
 
 	coverURL := ""
 
-	if gallery.CoverImageKey != nil && *gallery.CoverImageKey != "" {
-		signedURL, err := h.storage.PresignedGetObject(ctx, *gallery.CoverImageKey, presignedDownloadTTL)
+	if gallery.CoverImageKey != "" {
+		signedURL, err := h.storage.PresignedGetObject(ctx, gallery.CoverImageKey, presignedDownloadTTL)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)

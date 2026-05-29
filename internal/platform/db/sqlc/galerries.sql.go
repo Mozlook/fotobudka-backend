@@ -59,7 +59,7 @@ func (q *Queries) CreateGallery(ctx context.Context, arg CreateGalleryParams) (G
 	return i, err
 }
 
-const createGalleryPhotoForPresignedUpload = `-- name: CreateGalleryPhotoForPresignedUpload :one
+const createGalleryPhotoFromCompletedUpload = `-- name: CreateGalleryPhotoFromCompletedUpload :one
 INSERT INTO gallery_photos (
     id,
     gallery_id,
@@ -72,8 +72,8 @@ SELECT
     $1,
     $2,
     $3,
-    0,
-    0,
+    $4,
+    $5,
     COALESCE(MAX(sort_order) + 1, 0)
 FROM gallery_photos
 WHERE gallery_id = $2
@@ -87,14 +87,22 @@ RETURNING
     created_at
 `
 
-type CreateGalleryPhotoForPresignedUploadParams struct {
+type CreateGalleryPhotoFromCompletedUploadParams struct {
 	ID        uuid.UUID `db:"id" json:"id"`
 	GalleryID uuid.UUID `db:"gallery_id" json:"gallery_id"`
 	ImageKey  string    `db:"image_key" json:"image_key"`
+	Width     *int32    `db:"width" json:"width"`
+	Height    *int32    `db:"height" json:"height"`
 }
 
-func (q *Queries) CreateGalleryPhotoForPresignedUpload(ctx context.Context, arg CreateGalleryPhotoForPresignedUploadParams) (GalleryPhoto, error) {
-	row := q.db.QueryRow(ctx, createGalleryPhotoForPresignedUpload, arg.ID, arg.GalleryID, arg.ImageKey)
+func (q *Queries) CreateGalleryPhotoFromCompletedUpload(ctx context.Context, arg CreateGalleryPhotoFromCompletedUploadParams) (GalleryPhoto, error) {
+	row := q.db.QueryRow(ctx, createGalleryPhotoFromCompletedUpload,
+		arg.ID,
+		arg.GalleryID,
+		arg.ImageKey,
+		arg.Width,
+		arg.Height,
+	)
 	var i GalleryPhoto
 	err := row.Scan(
 		&i.ID,
@@ -153,7 +161,7 @@ SELECT
     g.is_public,
     g.created_at,
     COALESCE(stats.photo_count, 0)::int AS photo_count,
-    cover.image_key AS cover_image_key
+    COALESCE(cover.image_key, '')::text AS cover_image_key
 FROM galleries g
 LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS photo_count
@@ -317,7 +325,7 @@ SELECT
     g.is_public,
     g.created_at,
     COALESCE(stats.photo_count, 0)::int AS photo_count,
-    cover.image_key AS cover_image_key
+    COALESCE(cover.image_key, '')::text AS cover_image_key
 FROM galleries g
 LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS photo_count
@@ -438,7 +446,7 @@ SELECT
     g.is_public,
     g.created_at,
     COALESCE(stats.photo_count, 0)::int AS photo_count,
-    cover.image_key AS cover_image_key
+    COALESCE(cover.image_key, '')::text AS cover_image_key
 FROM galleries g
 LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS photo_count
@@ -543,55 +551,6 @@ func (q *Queries) ListPublicGalleryPhotos(ctx context.Context, galleryID uuid.UU
 		return nil, err
 	}
 	return items, nil
-}
-
-const markGalleryPhotoCompleted = `-- name: MarkGalleryPhotoCompleted :one
-UPDATE gallery_photos gp
-SET
-    width = $1,
-    height = $2
-FROM galleries g
-WHERE gp.gallery_id = g.id
-  AND gp.id = $3
-  AND gp.gallery_id = $4
-  AND g.photographer_id = $5
-RETURNING
-    gp.id,
-    gp.gallery_id,
-    gp.image_key,
-    gp.width,
-    gp.height,
-    gp.sort_order,
-    gp.created_at
-`
-
-type MarkGalleryPhotoCompletedParams struct {
-	Width          *int32    `db:"width" json:"width"`
-	Height         *int32    `db:"height" json:"height"`
-	ID             uuid.UUID `db:"id" json:"id"`
-	GalleryID      uuid.UUID `db:"gallery_id" json:"gallery_id"`
-	PhotographerID uuid.UUID `db:"photographer_id" json:"photographer_id"`
-}
-
-func (q *Queries) MarkGalleryPhotoCompleted(ctx context.Context, arg MarkGalleryPhotoCompletedParams) (GalleryPhoto, error) {
-	row := q.db.QueryRow(ctx, markGalleryPhotoCompleted,
-		arg.Width,
-		arg.Height,
-		arg.ID,
-		arg.GalleryID,
-		arg.PhotographerID,
-	)
-	var i GalleryPhoto
-	err := row.Scan(
-		&i.ID,
-		&i.GalleryID,
-		&i.ImageKey,
-		&i.Width,
-		&i.Height,
-		&i.SortOrder,
-		&i.CreatedAt,
-	)
-	return i, err
 }
 
 const updateGallery = `-- name: UpdateGallery :one

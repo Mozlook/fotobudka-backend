@@ -137,6 +137,7 @@ func (h *Handler) PresignGalleryPhotos(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"error_code": "presign_failed",
 			"message":    "Nie udało się przygotować uploadu zdjęć galerii.",
+			"details":    err.Error(),
 		})
 		return
 	}

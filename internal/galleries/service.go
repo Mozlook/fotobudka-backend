@@ -17,7 +17,7 @@ import (
 
 const (
 	maxGalleryPresignBatchSize = 50
-	presignedPutTTL            = 30 * time.Minute
+	presignedGetTTL            = 30 * time.Minute
 )
 
 type Service struct {
@@ -85,21 +85,8 @@ func (s *Service) PresignGalleryPhotos(
 		photoID := uuid.New()
 		objectKey := buildGalleryPhotoObjectKey(input.GalleryID, photoID, ext)
 
-		putURL, err := s.storage.PresignedPutObject(ctx, objectKey, presignedPutTTL)
+		putURL, err := s.storage.PresignedPutObject(ctx, objectKey, presignedGetTTL)
 		if err != nil {
-			return nil, err
-		}
-
-		if _, err := s.repo.CreatePhotoForPresignedUpload(
-			ctx,
-			galleriesrepo.CreateGalleryPhotoInput{
-				ID:        photoID,
-				GalleryID: input.GalleryID,
-				ImageKey:  objectKey,
-				Width:     0,
-				Height:    0,
-			},
-		); err != nil {
 			return nil, err
 		}
 
@@ -129,21 +116,24 @@ func (s *Service) CompleteGalleryPhotoUpload(
 		return galleriesrepo.GalleryPhoto{}, fmt.Errorf("photographer id is required")
 	}
 
-	photo, err := s.repo.GetPhotoForOwner(
+	if _, err := s.repo.GetByIDForOwner(
 		ctx,
-		input.PhotoID,
 		input.GalleryID,
 		input.PhotographerID,
+	); err != nil {
+		return galleriesrepo.GalleryPhoto{}, err
+	}
+
+	objectKey, err := s.findUploadedGalleryPhotoObjectKey(
+		ctx,
+		input.GalleryID,
+		input.PhotoID,
 	)
 	if err != nil {
 		return galleriesrepo.GalleryPhoto{}, err
 	}
 
-	if _, err := s.storage.StatObject(ctx, photo.ImageKey); err != nil {
-		return galleriesrepo.GalleryPhoto{}, err
-	}
-
-	reader, err := s.storage.GetObject(ctx, photo.ImageKey)
+	reader, err := s.storage.GetObject(ctx, objectKey)
 	if err != nil {
 		return galleriesrepo.GalleryPhoto{}, err
 	}
@@ -154,19 +144,45 @@ func (s *Service) CompleteGalleryPhotoUpload(
 		return galleriesrepo.GalleryPhoto{}, fmt.Errorf("decode gallery image config: %w", err)
 	}
 
-	completedPhoto, err := s.repo.MarkPhotoCompleted(
+	if config.Width <= 0 || config.Height <= 0 {
+		return galleriesrepo.GalleryPhoto{}, fmt.Errorf("invalid gallery image dimensions")
+	}
+
+	photo, err := s.repo.CreatePhotoFromCompletedUpload(
 		ctx,
-		input.PhotoID,
-		input.GalleryID,
-		input.PhotographerID,
-		int32(config.Width),
-		int32(config.Height),
+		galleriesrepo.CreateGalleryPhotoInput{
+			ID:        input.PhotoID,
+			GalleryID: input.GalleryID,
+			ImageKey:  objectKey,
+			Width:     int32(config.Width),
+			Height:    int32(config.Height),
+		},
 	)
 	if err != nil {
 		return galleriesrepo.GalleryPhoto{}, err
 	}
 
-	return completedPhoto, nil
+	return photo, nil
+}
+
+func (s *Service) findUploadedGalleryPhotoObjectKey(
+	ctx context.Context,
+	galleryID uuid.UUID,
+	photoID uuid.UUID,
+) (string, error) {
+	candidates := []string{
+		buildGalleryPhotoObjectKey(galleryID, photoID, ".jpg"),
+		buildGalleryPhotoObjectKey(galleryID, photoID, ".jpeg"),
+		buildGalleryPhotoObjectKey(galleryID, photoID, ".png"),
+	}
+
+	for _, objectKey := range candidates {
+		if _, err := s.storage.StatObject(ctx, objectKey); err == nil {
+			return objectKey, nil
+		}
+	}
+
+	return "", fmt.Errorf("uploaded gallery photo object not found")
 }
 
 func buildGalleryPhotoObjectKey(

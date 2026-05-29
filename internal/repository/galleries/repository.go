@@ -84,7 +84,7 @@ func (r *Repository) ListPublicGalleriesByPhotographerID(
 			IsPublic:       row.IsPublic,
 			CreatedAt:      row.CreatedAt,
 			PhotoCount:     row.PhotoCount,
-			CoverImageKey:  &row.CoverImageKey,
+			CoverImageKey:  row.CoverImageKey,
 		})
 	}
 
@@ -163,7 +163,7 @@ func (r *Repository) ListByOwner(
 			IsPublic:       row.IsPublic,
 			CreatedAt:      row.CreatedAt,
 			PhotoCount:     row.PhotoCount,
-			CoverImageKey:  &row.CoverImageKey,
+			CoverImageKey:  row.CoverImageKey,
 		})
 	}
 
@@ -194,7 +194,7 @@ func (r *Repository) GetByIDForOwner(
 		IsPublic:       row.IsPublic,
 		CreatedAt:      row.CreatedAt,
 		PhotoCount:     row.PhotoCount,
-		CoverImageKey:  &row.CoverImageKey,
+		CoverImageKey:  row.CoverImageKey,
 	}, nil
 }
 
@@ -330,49 +330,18 @@ func (r *Repository) GetPhotoForOwner(
 	}, nil
 }
 
-func (r *Repository) CreatePhotoForPresignedUpload(
+func (r *Repository) CreatePhotoFromCompletedUpload(
 	ctx context.Context,
 	input CreateGalleryPhotoInput,
 ) (GalleryPhoto, error) {
-	row, err := r.q.CreateGalleryPhotoForPresignedUpload(
+	row, err := r.q.CreateGalleryPhotoFromCompletedUpload(
 		ctx,
-		dbgen.CreateGalleryPhotoForPresignedUploadParams{
+		dbgen.CreateGalleryPhotoFromCompletedUploadParams{
 			ID:        input.ID,
 			GalleryID: input.GalleryID,
 			ImageKey:  input.ImageKey,
-		},
-	)
-	if err != nil {
-		return GalleryPhoto{}, err
-	}
-
-	return GalleryPhoto{
-		ID:        row.ID,
-		GalleryID: row.GalleryID,
-		ImageKey:  row.ImageKey,
-		Width:     *row.Width,
-		Height:    *row.Height,
-		SortOrder: row.SortOrder,
-		CreatedAt: row.CreatedAt,
-	}, nil
-}
-
-func (r *Repository) MarkPhotoCompleted(
-	ctx context.Context,
-	photoID uuid.UUID,
-	galleryID uuid.UUID,
-	photographerID uuid.UUID,
-	width int32,
-	height int32,
-) (GalleryPhoto, error) {
-	row, err := r.q.MarkGalleryPhotoCompleted(
-		ctx,
-		dbgen.MarkGalleryPhotoCompletedParams{
-			ID:             photoID,
-			GalleryID:      galleryID,
-			PhotographerID: photographerID,
-			Width:          &width,
-			Height:         &height,
+			Width:     &input.Width,
+			Height:    &input.Height,
 		},
 	)
 	if err != nil {

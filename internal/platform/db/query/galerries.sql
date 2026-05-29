@@ -19,7 +19,7 @@ SELECT
     g.is_public,
     g.created_at,
     COALESCE(stats.photo_count, 0)::int AS photo_count,
-    cover.image_key AS cover_image_key
+    COALESCE(cover.image_key, '')::text AS cover_image_key
 FROM galleries g
 LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS photo_count
@@ -80,7 +80,7 @@ SELECT
     g.is_public,
     g.created_at,
     COALESCE(stats.photo_count, 0)::int AS photo_count,
-    cover.image_key AS cover_image_key
+    COALESCE(cover.image_key, '')::text AS cover_image_key
 FROM galleries g
 LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS photo_count
@@ -110,7 +110,7 @@ SELECT
     g.is_public,
     g.created_at,
     COALESCE(stats.photo_count, 0)::int AS photo_count,
-    cover.image_key AS cover_image_key
+    COALESCE(cover.image_key, '')::text AS cover_image_key
 FROM galleries g
 LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS photo_count
@@ -202,7 +202,8 @@ WHERE gp.id = $1
   AND gp.gallery_id = $2
   AND g.photographer_id = $3;
 
--- name: CreateGalleryPhotoForPresignedUpload :one
+
+-- name: CreateGalleryPhotoFromCompletedUpload :one
 INSERT INTO gallery_photos (
     id,
     gallery_id,
@@ -215,8 +216,8 @@ SELECT
     sqlc.arg(id),
     sqlc.arg(gallery_id),
     sqlc.arg(image_key),
-    0,
-    0,
+    sqlc.arg(width),
+    sqlc.arg(height),
     COALESCE(MAX(sort_order) + 1, 0)
 FROM gallery_photos
 WHERE gallery_id = sqlc.arg(gallery_id)
@@ -228,25 +229,6 @@ RETURNING
     height,
     sort_order,
     created_at;
-
--- name: MarkGalleryPhotoCompleted :one
-UPDATE gallery_photos gp
-SET
-    width = sqlc.arg(width),
-    height = sqlc.arg(height)
-FROM galleries g
-WHERE gp.gallery_id = g.id
-  AND gp.id = sqlc.arg(id)
-  AND gp.gallery_id = sqlc.arg(gallery_id)
-  AND g.photographer_id = sqlc.arg(photographer_id)
-RETURNING
-    gp.id,
-    gp.gallery_id,
-    gp.image_key,
-    gp.width,
-    gp.height,
-    gp.sort_order,
-    gp.created_at;
 
 -- name: DeleteGalleryPhoto :exec
 DELETE FROM gallery_photos gp

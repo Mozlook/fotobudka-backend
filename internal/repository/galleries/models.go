@@ -24,7 +24,7 @@ type Gallery struct {
 	IsPublic       bool
 	CreatedAt      time.Time
 	PhotoCount     int32
-	CoverImageKey  *string
+	CoverImageKey  string
 }
 
 type GalleryPhoto struct {
