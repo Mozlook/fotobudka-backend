@@ -7,7 +7,9 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/auth"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/client"
+	"github.com/Mozlook/fotobudka-backend/internal/http/handler/galleries"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/me"
+	"github.com/Mozlook/fotobudka-backend/internal/http/handler/publicportfolio"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/sessions"
 	"github.com/Mozlook/fotobudka-backend/internal/http/middleware"
 	sessionsrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
@@ -21,6 +23,8 @@ func New(
 	meHandler *me.Handler,
 	sessionsHandler *sessions.Handler,
 	clientHandler *client.Handler,
+	galleriesHandler *galleries.Handler,
+	publicPortfolioHandler *publicportfolio.Handler,
 	manager *appauth.Manager,
 	clientManager *appauth.ClientManager,
 	sessionsRepo *sessionsrepo.Repository,
@@ -35,6 +39,8 @@ func New(
 	registerMeRoutes(mux, meHandler, manager)
 	registerSessionRoutes(mux, sessionsHandler, manager)
 	registerClientRouter(mux, clientHandler, clientManager, sessionsRepo, selections)
+	RegisterGalleryRoutes(mux, manager, galleriesHandler)
+	RegisterPublicPortfolioRoutes(mux, publicPortfolioHandler)
 
 	var h http.Handler = mux
 	h = middleware.CORS(frontendOrigin, h)

@@ -12,9 +12,12 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/config"
 	"github.com/Mozlook/fotobudka-backend/internal/deliveries"
 	"github.com/Mozlook/fotobudka-backend/internal/finalphotos"
+	galleriesusecase "github.com/Mozlook/fotobudka-backend/internal/galleries"
 	auth "github.com/Mozlook/fotobudka-backend/internal/http/handler/auth"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/client"
+	gallerieshandler "github.com/Mozlook/fotobudka-backend/internal/http/handler/galleries"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/me"
+	publicportfoliohandler "github.com/Mozlook/fotobudka-backend/internal/http/handler/publicportfolio"
 	"github.com/Mozlook/fotobudka-backend/internal/http/handler/sessions"
 	hrouter "github.com/Mozlook/fotobudka-backend/internal/http/router"
 	"github.com/Mozlook/fotobudka-backend/internal/oauth"
@@ -25,6 +28,7 @@ import (
 	"github.com/Mozlook/fotobudka-backend/internal/platform/redis"
 	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
 	deliveriesrepo "github.com/Mozlook/fotobudka-backend/internal/repository/deliveries"
+	galleriesrepo "github.com/Mozlook/fotobudka-backend/internal/repository/galleries"
 	"github.com/Mozlook/fotobudka-backend/internal/repository/profiles"
 	sessionphotosrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessionphotos"
 	sessionsrepo "github.com/Mozlook/fotobudka-backend/internal/repository/sessions"
@@ -65,6 +69,7 @@ func Run() error {
 	sessionsRepo := sessionsrepo.New(queries)
 	sessionPhotosRepo := sessionphotosrepo.New(queries, pool)
 	deliveriesRepo := deliveriesrepo.New(queries, pool)
+	galleriesRepo := galleriesrepo.NewRepository(queries)
 
 	storageClient, err := storage.New(cfg.S3)
 	if err != nil {
@@ -77,6 +82,7 @@ func Run() error {
 	finalPhotos := finalphotos.New(storageClient, pool)
 	payments := payments.New(pool)
 	deliveries := deliveries.New(pool, deliveriesRepo, storageClient)
+	galleriesService := galleriesusecase.New(pool, galleriesRepo, storageClient)
 	redisClient, err := redis.New(cfg.Redis, cfg.Captcha)
 	if err != nil {
 		return err
@@ -90,10 +96,12 @@ func Run() error {
 	meHandler := me.NewHandler(profilesRepo)
 	sessionsHandler := sessions.NewHandler(sessionsRepo, sessionAccess, sessionPhotos, deliveries, sessionPhotosRepo, finalPhotos, payments, storageClient, cfg.HTTP.FrontendOrigin)
 	clientHandler := client.NewHandler(sessionPhotos, sessionAccess, deliveries, redisClient, cfg.Captcha.RecaptchaSecretKey, clientManager, selections)
+	galleriesHandler := gallerieshandler.New(galleriesRepo, galleriesService, storageClient)
+	publicPortfolioHandler := publicportfoliohandler.New(galleriesRepo, storageClient)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTP.APIAddr,
-		Handler:           hrouter.New(log, authHandler, meHandler, sessionsHandler, clientHandler, manager, clientManager, sessionsRepo, cfg.HTTP.FrontendOrigin, selections),
+		Handler:           hrouter.New(log, authHandler, meHandler, sessionsHandler, clientHandler, galleriesHandler, publicPortfolioHandler, manager, clientManager, sessionsRepo, cfg.HTTP.FrontendOrigin, selections),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
