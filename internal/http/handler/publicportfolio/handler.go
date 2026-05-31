@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Mozlook/fotobudka-backend/internal/platform/storage"
@@ -55,6 +56,20 @@ type publicGalleryPhotoResponse struct {
 	Width     int32  `json:"Width"`
 	Height    int32  `json:"Height"`
 	SortOrder int32  `json:"SortOrder"`
+}
+
+type featuredGalleryPhotographerResponse struct {
+	Username    string `json:"Username"`
+	DisplayName string `json:"DisplayName"`
+}
+
+type featuredGalleryResponse struct {
+	ID           string                              `json:"ID"`
+	Title        string                              `json:"Title"`
+	Slug         string                              `json:"Slug"`
+	PhotoCount   int32                               `json:"PhotoCount"`
+	CoverURL     string                              `json:"CoverURL"`
+	Photographer featuredGalleryPhotographerResponse `json:"Photographer"`
 }
 
 func (h *Handler) GetPhotographer(w http.ResponseWriter, r *http.Request) {
@@ -271,5 +286,84 @@ func (h *Handler) GetGallery(w http.ResponseWriter, r *http.Request) {
 			Slug:  gallery.Slug,
 		},
 		"Photos": photoResponses,
+	})
+}
+
+func (h *Handler) GetFeaturedGalleries(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	limit := int32(4)
+
+	if rawLimit := r.URL.Query().Get("limit"); rawLimit != "" {
+		parsedLimit, err := strconv.Atoi(rawLimit)
+		if err != nil || parsedLimit < 1 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"error_code": "invalid_limit",
+				"message":    "Limit musi być liczbą większą od zera.",
+			})
+			return
+		}
+
+		if parsedLimit > 12 {
+			parsedLimit = 12
+		}
+
+		limit = int32(parsedLimit)
+	}
+
+	galleries, err := h.galleriesRepo.ListFeaturedPublicGalleries(ctx, limit)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"error_code": "internal_error",
+			"message":    "Nie udało się pobrać wyróżnionych galerii.",
+		})
+		return
+	}
+
+	galleryResponses := make([]featuredGalleryResponse, 0, len(galleries))
+
+	for _, gallery := range galleries {
+		coverURL := ""
+
+		if gallery.CoverImageKey != "" {
+			signedURL, err := h.storage.PresignedGetObject(ctx, gallery.CoverImageKey, presignedDownloadTTL)
+			if err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"error_code": "internal_error",
+					"message":    "Nie udało się podpisać okładki galerii.",
+				})
+				return
+			}
+
+			coverURL = signedURL
+		}
+
+		if coverURL == "" {
+			continue
+		}
+
+		galleryResponses = append(galleryResponses, featuredGalleryResponse{
+			ID:         gallery.ID.String(),
+			Title:      gallery.Title,
+			Slug:       gallery.Slug,
+			PhotoCount: gallery.PhotoCount,
+			CoverURL:   coverURL,
+			Photographer: featuredGalleryPhotographerResponse{
+				Username:    gallery.PhotographerUsername,
+				DisplayName: gallery.PhotographerDisplayName,
+			},
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"Galleries": galleryResponses,
 	})
 }

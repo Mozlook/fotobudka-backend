@@ -12,4 +12,5 @@ func RegisterPublicPortfolioRoutes(
 ) {
 	mux.HandleFunc("GET /api/public/photographers/{username}", publicPortfolioHandler.GetPhotographer)
 	mux.HandleFunc("GET /api/public/photographers/{username}/galleries/{slug}", publicPortfolioHandler.GetGallery)
+	mux.HandleFunc("GET /api/public/galleries/featured", publicPortfolioHandler.GetFeaturedGalleries)
 }

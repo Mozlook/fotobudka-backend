@@ -237,3 +237,39 @@ WHERE gp.gallery_id = g.id
   AND gp.id = $1
   AND gp.gallery_id = $2
   AND g.photographer_id = $3;
+
+-- name: ListFeaturedPublicGalleries :many
+SELECT
+    g.id,
+    g.photographer_id,
+    g.title,
+    g.slug,
+    g.is_public,
+    g.created_at,
+    pp.username AS photographer_username,
+    pp.display_name AS photographer_display_name,
+    COALESCE(stats.photo_count, 0)::int AS photo_count,
+    COALESCE(cover.image_key, '')::text AS cover_image_key
+FROM galleries g
+JOIN photographer_profiles pp
+    ON pp.user_id = g.photographer_id
+JOIN LATERAL (
+    SELECT COUNT(*)::int AS photo_count
+    FROM gallery_photos gp
+    WHERE gp.gallery_id = g.id
+      AND gp.width > 0
+      AND gp.height > 0
+) stats ON true
+JOIN LATERAL (
+    SELECT gp.image_key
+    FROM gallery_photos gp
+    WHERE gp.gallery_id = g.id
+      AND gp.width > 0
+      AND gp.height > 0
+    ORDER BY gp.sort_order ASC, gp.created_at ASC
+    LIMIT 1
+) cover ON true
+WHERE g.is_public = true
+  AND stats.photo_count > 0
+ORDER BY random()
+LIMIT sqlc.arg(limit_count)::int;

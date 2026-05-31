@@ -60,3 +60,16 @@ type CreateGalleryPhotoInput struct {
 	Width     int32
 	Height    int32
 }
+
+type FeaturedPublicGallery struct {
+	ID                      uuid.UUID
+	PhotographerID          uuid.UUID
+	Title                   string
+	Slug                    string
+	IsPublic                bool
+	CreatedAt               time.Time
+	PhotoCount              int32
+	CoverImageKey           string
+	PhotographerUsername    string
+	PhotographerDisplayName string
+}

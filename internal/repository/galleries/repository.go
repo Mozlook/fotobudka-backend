@@ -374,3 +374,40 @@ func (r *Repository) DeletePhoto(
 		},
 	)
 }
+
+func (r *Repository) ListFeaturedPublicGalleries(
+	ctx context.Context,
+	limit int32,
+) ([]FeaturedPublicGallery, error) {
+	if limit <= 0 {
+		limit = 4
+	}
+
+	if limit > 12 {
+		limit = 12
+	}
+
+	rows, err := r.q.ListFeaturedPublicGalleries(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]FeaturedPublicGallery, 0, len(rows))
+
+	for _, row := range rows {
+		out = append(out, FeaturedPublicGallery{
+			ID:                      row.ID,
+			PhotographerID:          row.PhotographerID,
+			Title:                   row.Title,
+			Slug:                    row.Slug,
+			IsPublic:                row.IsPublic,
+			CreatedAt:               row.CreatedAt,
+			PhotoCount:              row.PhotoCount,
+			CoverImageKey:           row.CoverImageKey,
+			PhotographerUsername:    row.PhotographerUsername,
+			PhotographerDisplayName: row.PhotographerDisplayName,
+		})
+	}
+
+	return out, nil
+}

@@ -316,6 +316,87 @@ func (q *Queries) GetPublicPhotographerByUsername(ctx context.Context, username 
 	return i, err
 }
 
+const listFeaturedPublicGalleries = `-- name: ListFeaturedPublicGalleries :many
+SELECT
+    g.id,
+    g.photographer_id,
+    g.title,
+    g.slug,
+    g.is_public,
+    g.created_at,
+    pp.username AS photographer_username,
+    pp.display_name AS photographer_display_name,
+    COALESCE(stats.photo_count, 0)::int AS photo_count,
+    COALESCE(cover.image_key, '')::text AS cover_image_key
+FROM galleries g
+JOIN photographer_profiles pp
+    ON pp.user_id = g.photographer_id
+JOIN LATERAL (
+    SELECT COUNT(*)::int AS photo_count
+    FROM gallery_photos gp
+    WHERE gp.gallery_id = g.id
+      AND gp.width > 0
+      AND gp.height > 0
+) stats ON true
+JOIN LATERAL (
+    SELECT gp.image_key
+    FROM gallery_photos gp
+    WHERE gp.gallery_id = g.id
+      AND gp.width > 0
+      AND gp.height > 0
+    ORDER BY gp.sort_order ASC, gp.created_at ASC
+    LIMIT 1
+) cover ON true
+WHERE g.is_public = true
+  AND stats.photo_count > 0
+ORDER BY random()
+LIMIT $1::int
+`
+
+type ListFeaturedPublicGalleriesRow struct {
+	ID                      uuid.UUID `db:"id" json:"id"`
+	PhotographerID          uuid.UUID `db:"photographer_id" json:"photographer_id"`
+	Title                   string    `db:"title" json:"title"`
+	Slug                    string    `db:"slug" json:"slug"`
+	IsPublic                bool      `db:"is_public" json:"is_public"`
+	CreatedAt               time.Time `db:"created_at" json:"created_at"`
+	PhotographerUsername    string    `db:"photographer_username" json:"photographer_username"`
+	PhotographerDisplayName string    `db:"photographer_display_name" json:"photographer_display_name"`
+	PhotoCount              int32     `db:"photo_count" json:"photo_count"`
+	CoverImageKey           string    `db:"cover_image_key" json:"cover_image_key"`
+}
+
+func (q *Queries) ListFeaturedPublicGalleries(ctx context.Context, limitCount int32) ([]ListFeaturedPublicGalleriesRow, error) {
+	rows, err := q.db.Query(ctx, listFeaturedPublicGalleries, limitCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListFeaturedPublicGalleriesRow{}
+	for rows.Next() {
+		var i ListFeaturedPublicGalleriesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.PhotographerID,
+			&i.Title,
+			&i.Slug,
+			&i.IsPublic,
+			&i.CreatedAt,
+			&i.PhotographerUsername,
+			&i.PhotographerDisplayName,
+			&i.PhotoCount,
+			&i.CoverImageKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listGalleriesByOwner = `-- name: ListGalleriesByOwner :many
 SELECT
     g.id,
