@@ -53,16 +53,28 @@ func proofObjectKey(sessionID, photoID uuid.UUID) string {
 }
 
 func applyProofWatermark(src image.Image, seed int32) (image.Image, error) {
-	dst := image.NewRGBA(src.Bounds())
-	draw.Draw(dst, dst.Bounds(), src, src.Bounds().Min, draw.Src)
+	b := src.Bounds()
+
+	dst := image.NewRGBA(b)
+	draw.Draw(dst, b, src, b.Min, draw.Src)
+
+	if b.Empty() {
+		return dst, nil
+	}
 
 	f, err := opentype.Parse(goregular.TTF)
 	if err != nil {
 		return nil, err
 	}
 
+	shortSide := minInt(b.Dx(), b.Dy())
+
+	// Skala watermarka zależna od rozmiaru proofa.
+	// Dla proofów około 1600–2500 px daje duży, ale nadal czytelny pattern.
+	fontSize := clampFloat64(float64(shortSide)/9.5, 48, 160)
+
 	face, err := opentype.NewFace(f, &opentype.FaceOptions{
-		Size:    72,
+		Size:    fontSize,
 		DPI:     72,
 		Hinting: font.HintingNone,
 	})
@@ -73,68 +85,114 @@ func applyProofWatermark(src image.Image, seed int32) (image.Image, error) {
 	text := "FotoBudka"
 	textW := font.MeasureString(face, text).Ceil()
 
-	m := face.Metrics()
-	ascent := m.Ascent.Ceil()
-	descent := m.Descent.Ceil()
+	metrics := face.Metrics()
+	ascent := metrics.Ascent.Ceil()
+	descent := metrics.Descent.Ceil()
 	textH := ascent + descent
-	b := dst.Bounds()
 
-	centerX := b.Min.X + (b.Dx()-textW)/2
-	centerY := b.Min.Y + (b.Dy()-textH)/2 + ascent
+	// Odstępy między watermarkami. Im mniejsze wartości, tym gęstszy pattern.
+	stepX := textW + maxInt(80, int(fontSize*1.05))
+	stepY := textH + maxInt(90, int(fontSize*1.65))
 
 	r := rand.New(rand.NewSource(int64(seed)))
 
-	padding := 40
+	baseX := b.Min.X - textW - stepX + r.Intn(stepX)
+	baseY := b.Min.Y - textH - stepY + r.Intn(stepY)
 
-	maxShiftX := max(20, b.Dx()/10)
-	maxShiftY := max(20, b.Dy()/10)
+	maxJitter := maxInt(8, int(fontSize/10))
+	shadowOffset := maxInt(2, int(fontSize/24))
 
-	offsetX := r.Intn(2*maxShiftX+1) - maxShiftX
-	offsetY := r.Intn(2*maxShiftY+1) - maxShiftY
+	// Przy powtarzalnym watermarku alfa nie może być za duża,
+	// bo inaczej proof będzie za ciężki wizualnie.
+	ink := image.NewUniform(color.NRGBA{R: 255, G: 255, B: 255, A: 82})
+	inkShadow := image.NewUniform(color.NRGBA{R: 0, G: 0, B: 0, A: 70})
 
-	x := centerX + offsetX
-	y := centerY + offsetY
+	row := 0
 
-	minX := b.Min.X + padding
-	maxX := b.Max.X - padding - textW
+	for baseline := baseY + ascent; baseline < b.Max.Y+textH+stepY; baseline += stepY {
+		rowShift := 0
+		if row%2 == 1 {
+			rowShift = stepX / 2
+		}
 
-	minY := b.Min.Y + padding + ascent
-	maxY := b.Max.Y - padding - descent
+		// Delikatny dryf tworzy mniej regularną siatkę.
+		drift := (row * stepX / 6) % stepX
+		jitterX := r.Intn(2*maxJitter+1) - maxJitter
 
-	if x < minX {
-		x = minX
+		x := baseX + rowShift - drift + jitterX
+
+		for x < b.Max.X+stepX {
+			drawWatermarkText(
+				dst,
+				face,
+				text,
+				x,
+				baseline,
+				shadowOffset,
+				ink,
+				inkShadow,
+			)
+
+			x += stepX
+		}
+
+		row++
 	}
-	if x > maxX {
-		x = maxX
-	}
-	if y < minY {
-		y = minY
-	}
-	if y > maxY {
-		y = maxY
-	}
 
-	dot := fixed.P(x, y)
-	dotShadow := fixed.P(x+3, y+3)
+	return dst, nil
+}
 
-	ink := image.NewUniform(color.NRGBA{R: 255, G: 255, B: 255, A: 110})
-	inkShadow := image.NewUniform(color.NRGBA{R: 0, G: 0, B: 0, A: 110})
-
-	d := &font.Drawer{
+func drawWatermarkText(
+	dst draw.Image,
+	face font.Face,
+	text string,
+	x int,
+	y int,
+	shadowOffset int,
+	ink image.Image,
+	inkShadow image.Image,
+) {
+	shadow := &font.Drawer{
 		Dst:  dst,
 		Src:  inkShadow,
 		Face: face,
-		Dot:  dotShadow,
+		Dot:  fixed.P(x+shadowOffset, y+shadowOffset),
 	}
-	d.DrawString(text)
+	shadow.DrawString(text)
 
-	d = &font.Drawer{
+	main := &font.Drawer{
 		Dst:  dst,
 		Src:  ink,
 		Face: face,
-		Dot:  dot,
+		Dot:  fixed.P(x, y),
 	}
-	d.DrawString(text)
+	main.DrawString(text)
+}
 
-	return dst, nil
+func minInt(a int, b int) int {
+	if a < b {
+		return a
+	}
+
+	return b
+}
+
+func maxInt(a int, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
+}
+
+func clampFloat64(value float64, minValue float64, maxValue float64) float64 {
+	if value < minValue {
+		return minValue
+	}
+
+	if value > maxValue {
+		return maxValue
+	}
+
+	return value
 }
